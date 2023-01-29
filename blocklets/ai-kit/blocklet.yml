@@ -1,0 +1,55 @@
+name: ai-kit
+title: AI Kit
+description: A blocklet for OpenAI
+keywords:
+  - ai
+  - openai
+group: dapp
+did: z8ia3xzq2tMq8CRHfaXj1BTYJyYnEcHbqP8cJ
+main: api/dist/index.js
+author:
+  name: LiYechao
+  email: liyechao@yechao.xyz
+repository:
+  type: git
+  url: git+https://github.com/blocklet/ai-kit.git
+specVersion: 1.1.1
+version: 0.0.1
+logo: logo.png
+files:
+  - dist
+  - logo.png
+  - screenshots
+  - api/hooks/pre-start.js
+interfaces:
+  - type: web
+    name: publicUrl
+    path: /
+    prefix: '*'
+    port: BLOCKLET_PORT
+    protocol: http
+community: ''
+documentation: ''
+homepage: ''
+license: ''
+payment:
+  price: []
+  share: []
+timeout:
+  start: 60
+requirements:
+  server: '>=1.6.29'
+  os: '*'
+  cpu: '*'
+scripts:
+  preStart: node api/hooks/pre-start.js
+  dev: npm run start
+environments:
+  - name: CHAIN_HOST
+    description: What's endpoint of the chain?
+    required: true
+    default: https://beta.abtnetwork.io/api/
+    secure: false
+capabilities: {}
+screenshots: []
+components: []

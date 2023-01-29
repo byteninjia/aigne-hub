@@ -1,0 +1,54 @@
+{
+  "name": "ai-kit",
+  "private": true,
+  "workspaces": [
+    "blocklets/*",
+    "packages/*"
+  ],
+  "author": {
+    "name": "Yechao Li",
+    "email": "liyechao@yechao.xyz"
+  },
+  "scripts": {
+    "dev": "yarn workspace ai-kit dev",
+    "bundle": "yarn workspace ai-kit bundle",
+    "lint": "yarn workspaces run lint",
+    "build": "yarn workspaces run clean && yarn workspaces run build",
+    "clean": "yarn workspaces run clean",
+    "prepare": "husky install",
+    "update:deps": "lerna exec --no-bail -- \"ncu -u -f /arcblock\\|ocap\\|abtnode\\|ux\\|did-comment\\|blocklet/\""
+  },
+  "lint-staged": {
+    "*.{mjs,js,jsx,ts,tsx}": [
+      "prettier --write",
+      "eslint"
+    ],
+    "*.{css,less,scss,json,graphql}": [
+      "prettier --write"
+    ]
+  },
+  "importSort": {
+    ".js, .jsx, .mjs": {
+      "parser": "babylon",
+      "style": "module"
+    },
+    ".ts, .tsx": {
+      "style": "module",
+      "parser": "typescript"
+    }
+  },
+  "devDependencies": {
+    "@arcblock/eslint-config": "^0.2.3",
+    "@arcblock/eslint-config-ts": "^0.2.3",
+    "bumpp": "^8.2.1",
+    "eslint": "^8.27.0",
+    "husky": "^8.0.2",
+    "import-sort-style-module": "^6.0.0",
+    "lint-staged": "^12.5.0",
+    "prettier": "^2.7.1",
+    "prettier-plugin-import-sort": "^0.0.7",
+    "rimraf": "^3.0.2",
+    "typescript": "^4.9.4",
+    "zx": "^7.1.1"
+  }
+}
