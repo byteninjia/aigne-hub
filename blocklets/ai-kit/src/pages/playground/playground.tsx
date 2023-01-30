@@ -8,14 +8,14 @@ import produce from 'immer';
 import { nanoid } from 'nanoid';
 import { ReactNode, useState } from 'react';
 
-import { AIResponse, completions } from '../../libs/ai';
+import { completions } from '../../libs/ai';
 
 const nextId = () => nanoid(16);
 
 export default function Playground() {
   const [conversations, setConversations] = useState<
-    { id: string; prompt: string; response?: AIResponse; error?: Error }[]
-  >([]);
+    { id: string; prompt: string; response?: string; error?: Error }[]
+  >(() => [{ id: nextId(), prompt: 'Hi!', response: 'Hi, I am AI Kit from ArcBlock!' }]);
 
   return (
     <>
@@ -32,12 +32,12 @@ export default function Playground() {
                 my={1}
                 id={`response-${item.id}`}
                 avatar={<Avatar sx={{ bgcolor: 'primary.main' }}>AI</Avatar>}>
-                {item.response ? (
-                  <Box whiteSpace="pre-wrap">{item.response?.choices.at(0)?.text}</Box>
-                ) : item.error ? (
+                {item.error ? (
                   <Alert color="error" icon={<Error />}>
                     {(item.error as AxiosError<{ message: string }>).response?.data?.message || item.error.message}
                   </Alert>
+                ) : item.response ? (
+                  <Box whiteSpace="pre-wrap">{item.response}</Box>
                 ) : (
                   <CircularProgress size={16} />
                 )}
@@ -59,18 +59,27 @@ export default function Playground() {
                   document.getElementById(`conversation-${id}`)?.scrollIntoView({ behavior: 'smooth' });
                 });
                 try {
-                  const response = await completions({ prompt });
-                  setConversations((v) =>
-                    produce(v, (draft) => {
-                      const item = draft.find((i) => i.id === id);
-                      if (item) {
-                        item.response = {
-                          ...response,
-                          choices: response.choices.map((i) => ({ ...i, text: i.text.trim() })),
-                        };
-                      }
-                    })
-                  );
+                  const response = await completions({ prompt, stream: true });
+
+                  const reader = response.getReader();
+                  const decoder = new TextDecoder();
+                  let done = false;
+
+                  while (!done) {
+                    // eslint-disable-next-line no-await-in-loop
+                    const { value, done: doneReading } = await reader.read();
+                    done = doneReading;
+                    const chunkValue = decoder.decode(value);
+                    setConversations((v) =>
+                      produce(v, (draft) => {
+                        const item = draft.find((i) => i.id === id);
+                        if (item) {
+                          item.response ??= '';
+                          item.response += chunkValue;
+                        }
+                      })
+                    );
+                  }
                 } catch (error) {
                   setConversations((v) =>
                     produce(v, (draft) => {
@@ -104,7 +113,7 @@ function ConversationItem({ children, avatar, ...props }: { children: ReactNode;
   return (
     <Box {...props} display="flex">
       <AvatarWrapper mr={1}>{avatar}</AvatarWrapper>
-      <Box minHeight={30} display="flex" alignItems="center" flex={1} overflow="hidden">
+      <Box flex={1} overflow="hidden" sx={{ pt: '3px', wordBreak: 'break-word' }}>
         {children}
       </Box>
     </Box>
