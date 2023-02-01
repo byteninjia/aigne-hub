@@ -1,6 +1,6 @@
 name: ai-kit
 title: AI Kit
-description: A blocklet for OpenAI
+description: Bring AI to blocklet
 keywords:
   - ai
   - openai
@@ -14,7 +14,7 @@ repository:
   type: git
   url: git+https://github.com/blocklet/ai-kit.git
 specVersion: 1.2.7
-version: 0.0.7
+version: 0.0.8
 logo: logo.png
 files:
   - dist
