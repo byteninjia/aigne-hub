@@ -14,12 +14,13 @@ repository:
   type: git
   url: git+https://github.com/blocklet/ai-kit.git
 specVersion: 1.2.7
-version: 0.0.12
+version: 0.0.13
 logo: logo.png
 files:
   - dist
   - logo.png
   - screenshots
+  - docs
   - api/hooks/pre-start.js
 interfaces:
   - type: web
@@ -55,7 +56,8 @@ capabilities:
   clusterMode: false
   component: true
   navigation: true
-screenshots: []
+screenshots:
+  - playground.gif
 components: []
 navigation:
   - id: playground
