@@ -4,7 +4,12 @@ module.exports = {
   root: true,
   extends: '@arcblock/eslint-config-ts',
   parserOptions: {
-    project: [join(__dirname, 'tsconfig.eslint.json'), join(__dirname, 'blocklets/ai-kit/tsconfig.json')],
+    project: [
+      join(__dirname, 'tsconfig.eslint.json'),
+      join(__dirname, 'blocklets/ai-kit/tsconfig.json'),
+      join(__dirname, 'packages/react/tsconfig.json'),
+      join(__dirname, 'scripts/tsconfig.json'),
+    ],
   },
   globals: {
     logger: true,

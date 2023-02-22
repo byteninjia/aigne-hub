@@ -1,3 +1,4 @@
+import { ImagePreview } from '@blocklet/ai-kit';
 import { cx } from '@emotion/css';
 import styled from '@emotion/styled';
 import { Cancel, CopyAll, Error, Send } from '@mui/icons-material';
@@ -8,12 +9,12 @@ import {
   BoxProps,
   Button,
   CircularProgress,
-  Grid,
   IconButton,
   Input,
   InputAdornment,
   Tooltip,
 } from '@mui/material';
+import { useHistoryTravel } from 'ahooks';
 import { AxiosError } from 'axios';
 import produce from 'immer';
 import { nanoid } from 'nanoid';
@@ -58,18 +59,15 @@ export default forwardRef<ConversationRef, BoxProps>(({ maxWidth, ...props }: Bo
                 avatar={<Avatar sx={{ bgcolor: 'primary.main' }}>AI</Avatar>}
                 onCancel={item.writing ? () => cancelConversation(item.id) : undefined}>
                 {typeof item.response === 'object' && (
-                  <Grid container spacing={1}>
-                    {item.response.data.map(({ url }) => (
-                      <Grid key={url} item xs={4}>
-                        <Box
-                          component="img"
-                          src={url}
-                          sx={{ display: 'block', width: '100%' }}
-                          onLoad={() => scrollToBottom()}
-                        />
-                      </Grid>
-                    ))}
-                  </Grid>
+                  <ImagePreview
+                    itemWidth={100}
+                    dataSource={item.response.data.map((item) => {
+                      return {
+                        src: item.url,
+                        onLoad: () => scrollToBottom(),
+                      };
+                    })}
+                  />
                 )}
                 {item.error ? (
                   <Alert color="error" icon={<Error />} sx={{ px: 1, py: 0 }}>
@@ -352,9 +350,15 @@ const AvatarWrapper = styled(Box)`
 
 function Prompt({ onSubmit }: { onSubmit: (prompt: string) => any }) {
   const [prompt, setPrompt] = useState('');
+  const { value: historyPrompt, setValue: setHistoryPrompt, forwardLength, back, go, forward } = useHistoryTravel('');
   const submit = () => {
-    onSubmit(prompt);
-    setPrompt('');
+    go(forwardLength);
+    // wait for history to set before submitting
+    setTimeout(() => {
+      setHistoryPrompt(prompt);
+      onSubmit(prompt);
+      setPrompt('');
+    }, 50);
   };
 
   return (
@@ -367,6 +371,18 @@ function Prompt({ onSubmit }: { onSubmit: (prompt: string) => any }) {
         disableUnderline
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
+        onKeyDown={(e) => {
+          // if pressed up
+          if (e.keyCode === 38) {
+            back();
+            setPrompt(historyPrompt || '');
+            e.preventDefault();
+          } else if (e.keyCode === 40) {
+            forward();
+            setPrompt(historyPrompt || '');
+            e.preventDefault();
+          }
+        }}
         endAdornment={
           <InputAdornment position="end">
             <IconButton onClick={submit} size="small" type="submit">
