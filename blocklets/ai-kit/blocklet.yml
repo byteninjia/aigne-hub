@@ -14,7 +14,7 @@ repository:
   type: git
   url: git+https://github.com/blocklet/ai-kit.git
 specVersion: 1.2.8
-version: 0.0.31
+version: 0.0.32
 logo: logo.png
 files:
   - dist
@@ -61,7 +61,9 @@ screenshots:
 components: []
 navigation:
   - id: playground
-    title: Playground
+    title:
+      en: Playground
+      zh: 沙盒
     icon: carbon:run
     link: /playground
     section:
