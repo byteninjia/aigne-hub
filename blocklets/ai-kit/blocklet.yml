@@ -14,7 +14,7 @@ repository:
   type: git
   url: git+https://github.com/blocklet/ai-kit.git
 specVersion: 1.2.8
-version: 0.0.62
+version: 0.0.63
 logo: logo.png
 files:
   - dist
@@ -51,6 +51,12 @@ environments:
     required: false
     default: ''
     secure: true
+    shared: false
+  - name: VERBOSE
+    description: Logging input and output of AI
+    required: false
+    default: 'false'
+    secure: false
     shared: false
 capabilities:
   clusterMode: false
