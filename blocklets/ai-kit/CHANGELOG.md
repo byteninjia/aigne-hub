@@ -1,3 +1,7 @@
+## 0.0.83 (2023-11-24)
+
+- fix: add parameters for tool call
+
 ## 0.0.82 (2023-11-23)
 
 - feat: add function calling support
