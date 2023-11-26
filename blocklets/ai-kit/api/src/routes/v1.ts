@@ -5,6 +5,7 @@ import { Request, Response, Router } from 'express';
 import proxy from 'express-http-proxy';
 import { GPTTokens } from 'gpt-tokens';
 import Joi from 'joi';
+import { pick } from 'lodash';
 import {
   ChatCompletionAssistantMessageParam,
   ChatCompletionChunk,
@@ -166,16 +167,18 @@ const completionsRequestSchema = Joi.object<
   presencePenalty: Joi.number().min(-2).max(2).empty([null, '']),
   frequencyPenalty: Joi.number().min(-2).max(2).empty([null, '']),
   maxTokens: Joi.number().integer().min(1).empty([null, '']),
-  tools: Joi.array().items(
-    Joi.object({
-      type: Joi.string().valid('function').required(),
-      function: Joi.object({
-        name: Joi.string().required(),
-        description: Joi.string().empty([null, '']),
-        parameters: Joi.object().pattern(Joi.string(), Joi.any()).required(),
-      }).required(),
-    })
-  ),
+  tools: Joi.array()
+    .items(
+      Joi.object({
+        type: Joi.string().valid('function').required(),
+        function: Joi.object({
+          name: Joi.string().required(),
+          description: Joi.string().empty([null, '']),
+          parameters: Joi.object().pattern(Joi.string(), Joi.any()).required(),
+        }).required(),
+      })
+    )
+    .empty(Joi.array().length(0)),
   toolChoice: Joi.alternatives(
     Joi.string().valid('none', 'auto'),
     Joi.object({
@@ -188,9 +191,7 @@ const completionsRequestSchema = Joi.object<
 }).xor('prompt', 'messages');
 
 async function completions(req: Request, res: Response) {
-  const { model, stream, ...input } = await completionsRequestSchema.validateAsync(req.body, {
-    stripUnknown: true,
-  });
+  const { model, stream, ...input } = await completionsRequestSchema.validateAsync(req.body, { stripUnknown: true });
 
   const isEventStream = req.accepts().includes('text/event-stream');
 
@@ -236,7 +237,7 @@ async function completions(req: Request, res: Response) {
     frequency_penalty: input.frequencyPenalty,
     max_tokens: input.maxTokens,
     tools: input.tools,
-    tool_choice: input.toolChoice,
+    tool_choice: input.tools?.length ? input.toolChoice : undefined,
   };
 
   if (env.verbose) logger.log('AI Kit completions input:', JSON.stringify(request, null, 2));
@@ -246,10 +247,7 @@ async function completions(req: Request, res: Response) {
   let completionTokens: number | undefined;
 
   if (stream || isEventStream) {
-    const r = await openai.chat.completions.create({
-      ...request,
-      stream: true,
-    });
+    const r = await openai.chat.completions.create({ ...request, stream: true });
 
     const decoder = new TextDecoder();
 
@@ -337,7 +335,8 @@ async function completions(req: Request, res: Response) {
         .filter(
           (i): i is ConstructorParameters<typeof GPTTokens>[0]['messages'][number] =>
             ['system', 'user', 'assistant'].includes(i.role) && typeof i.content === 'string'
-        ),
+        )
+        .map((i) => pick(i, 'name', 'role', 'content')),
     });
 
     promptTokens = tokens.promptUsedTokens;

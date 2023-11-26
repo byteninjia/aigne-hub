@@ -1,3 +1,7 @@
+## 0.0.84 (2023-11-26)
+
+- fix: set empty tools array to undefined
+
 ## 0.0.83 (2023-11-24)
 
 - fix: add parameters for tool call
