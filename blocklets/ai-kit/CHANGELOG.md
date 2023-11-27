@@ -1,3 +1,7 @@
+## 0.0.86 (2023-11-27)
+
+- fix: reactive configures
+
 ## 0.0.85 (2023-11-27)
 
 - fix: reactive configures
