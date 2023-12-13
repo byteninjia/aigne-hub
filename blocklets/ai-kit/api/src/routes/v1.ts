@@ -4,7 +4,8 @@ import { Request, Response, Router } from 'express';
 import proxy from 'express-http-proxy';
 import { GPTTokens } from 'gpt-tokens';
 import Joi from 'joi';
-import { pick } from 'lodash';
+import omit from 'lodash/omit';
+import pick from 'lodash/pick';
 import {
   ChatCompletionAssistantMessageParam,
   ChatCompletionChunk,
@@ -431,7 +432,10 @@ async function imageGenerations(req: Request, res: Response) {
 
   const openai = getAIProvider();
 
-  const response = await openai.images.generate({ ...input, response_format: input.responseFormat });
+  const response = await openai.images.generate({
+    ...omit(input, 'responseFormat'),
+    response_format: input.responseFormat,
+  });
 
   res.json({
     data: response.data.map((i) => ({

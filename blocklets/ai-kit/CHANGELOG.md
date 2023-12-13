@@ -1,10 +1,14 @@
+## 0.0.90 (2023-12-13)
+
+fix: omit unused parameters of image generations
+
 ## 0.0.89 (2023-12-13)
 
 - fix: only prompt parameter is required
 
 ## 0.0.88 (2023-12-1)
 
-- fix: support custom oepnai url
+- fix: support custom openai url
 
 ## 0.0.87 (2023-11-29)
 
@@ -198,13 +202,13 @@
 
 ## 0.0.42 (2023-3-17)
 
-- fix: avoid submiting empty prompts
+- fix: avoid submitting empty prompts
 - fix: import dependencies as needed
 - feat: upgrade blocklet sdk
 
 ## 0.0.41 (2023-3-16)
 
-- fix: suppoort custom scroll container
+- fix: support custom scroll container
 
 ## 0.0.40 (2023-3-16)
 
@@ -242,7 +246,7 @@
 
 ## 0.0.32 (2023-2-28)
 
-- fix: trnaslate admin menu
+- fix: translate admin menu
 
 ## 0.0.31 (2023-2-27)
 
