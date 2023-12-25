@@ -12,7 +12,7 @@
     "build": "tsc --noEmit && npm run bundle:client && tsc -p tsconfig.api.json",
     "bundle": "tsc --noEmit && npm run bundle:client && npm run bundle:api",
     "bundle:client": "vite build",
-    "bundle:api": "npm run clean && tsc -p tsconfig.api.json && blocklet bundle --zip --create-release",
+    "bundle:api": "npm run clean && ttsc -p tsconfig.api.json && blocklet bundle --zip --create-release",
     "deploy": "npm run bundle && blocklet deploy .blocklet/bundle",
     "upload": "npm run bundle && blocklet upload .blocklet/release/blocklet.json",
     "update:deps": "npx taze -n '/arcblock|ocap|abtnode|blocklet|did-connect|did-comment|nedb/' -w && npm run deduplicate && yarn",

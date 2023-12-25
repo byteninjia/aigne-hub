@@ -77,6 +77,7 @@
     "storybook": "set NODE_OPTIONS=--openssl-legacy-provider && start-storybook -p 6009",
     "build-storybook": "build-storybook",
     "prepare": "npm run build",
+    "clean": "rm -rf lib",
     "update:deps": "npx taze -n '/arcblock|ocap|abtnode|blocklet|did-connect|did-comment|nedb/' -w && npm run deduplicate && yarn",
     "deduplicate": "npx yarn-deduplicate ../../yarn.lock"
   },
@@ -132,9 +133,11 @@
     "@types/react": "^18.0.26",
     "@types/react-dom": "^18.0.10",
     "@vitejs/plugin-react": "^2.2.0",
+    "@zerollup/ts-transform-paths": "^1.7.18",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "storybook": "^6.5.15",
+    "ttypescript": "^1.5.15",
     "typescript": "^4.9.4",
     "vite": "^4.1.4",
     "vite-plugin-build": "^0.7.1"

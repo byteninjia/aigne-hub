@@ -4,7 +4,17 @@
     "outDir": "api/dist",
     "noEmit": false,
     "noEmitOnError": true,
-    "module": "CommonJS"
+    "module": "CommonJS",
+    "baseUrl": "./",
+    "paths": {
+      "@app/*": ["./src/*"],
+      "@api/*": ["./api/src/*"]
+    },
+    "plugins": [
+      {
+        "transform": "@zerollup/ts-transform-paths"
+      }
+    ]
   },
   "include": ["api/*.d.ts", "api/src"]
 }
