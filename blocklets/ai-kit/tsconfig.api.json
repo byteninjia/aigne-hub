@@ -9,12 +9,7 @@
     "paths": {
       "@app/*": ["./src/*"],
       "@api/*": ["./api/src/*"]
-    },
-    "plugins": [
-      {
-        "transform": "@zerollup/ts-transform-paths"
-      }
-    ]
+    }
   },
   "include": ["api/*.d.ts", "api/src"]
 }

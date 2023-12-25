@@ -1,3 +1,7 @@
+## 0.0.97 (2023-12-25)
+
+- chore: bundle api with tsc-alias
+
 ## 0.0.96 (2023-12-25)
 
 - feat: ai kit as service

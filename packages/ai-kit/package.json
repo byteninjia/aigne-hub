@@ -1,6 +1,6 @@
 {
   "name": "@blocklet/ai-kit",
-  "version": "0.0.96",
+  "version": "0.0.97",
   "description": "The react.js component library for AI Kit",
   "publishConfig": {
     "access": "public"
@@ -20,17 +20,17 @@
       "import": "./lib/es/api/index.js",
       "require": "./lib/cjs/api/index.js"
     },
-    "./api/": {
-      "import": "./lib/es/api/",
-      "require": "./lib/cjs/api/"
+    "./api/*": {
+      "import": "./lib/es/api/*.js",
+      "require": "./lib/cjs/api/*.js"
     },
     "./components": {
       "import": "./lib/es/components/index.js",
       "require": "./lib/cjs/components/index.js"
     },
-    "./components/": {
-      "import": "./lib/es/components/",
-      "require": "./lib/cjs/components/"
+    "./components/*": {
+      "import": "./lib/es/components/*.js",
+      "require": "./lib/cjs/components/*.js"
     }
   },
   "typesVersions": {
@@ -133,11 +133,9 @@
     "@types/react": "^18.0.26",
     "@types/react-dom": "^18.0.10",
     "@vitejs/plugin-react": "^2.2.0",
-    "@zerollup/ts-transform-paths": "^1.7.18",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "storybook": "^6.5.15",
-    "ttypescript": "^1.5.15",
     "typescript": "^4.9.4",
     "vite": "^4.1.4",
     "vite-plugin-build": "^0.7.1"
