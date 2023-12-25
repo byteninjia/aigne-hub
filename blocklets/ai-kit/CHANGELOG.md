@@ -1,3 +1,7 @@
+## 0.0.99 (2023-12-25)
+
+- fix: update exports of @blocklet/ai-kit/api
+
 ## 0.0.98 (2023-12-25)
 
 - chore: bump version
