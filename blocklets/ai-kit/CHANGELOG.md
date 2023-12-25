@@ -1,3 +1,7 @@
+## 0.0.98 (2023-12-25)
+
+- chore: bump version
+
 ## 0.0.97 (2023-12-25)
 
 - chore: bundle api with tsc-alias
