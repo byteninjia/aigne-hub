@@ -1,3 +1,7 @@
+## 0.0.103 (2023-12-27)
+
+- fix: use latest value of config
+
 ## 0.0.102 (2023-12-26)
 
 - feat: add ai kit dashboard component
