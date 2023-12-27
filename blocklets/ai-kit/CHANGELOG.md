@@ -1,3 +1,7 @@
+## 0.0.105 (2023-12-27)
+
+- chore: update deps
+
 ## 0.0.104 (2023-12-27)
 
 - fix: generic event stream
