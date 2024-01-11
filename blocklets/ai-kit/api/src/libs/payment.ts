@@ -10,6 +10,7 @@ export const isPaymentInstalled = () => !!config.components.find((i) => i.did ==
 export async function getActiveSubscriptionOfApp({ appId }: { appId: string }) {
   if (!isPaymentInstalled()) return undefined;
 
+  // @ts-ignore TODO: remove ts-ignore after upgrade @did-pay/client
   const subscription = (await payment.subscriptions.list({ 'metadata.appId': appId })).list.find(
     (i) =>
       ['active', 'trialing'].includes(i.status) &&
@@ -22,4 +23,11 @@ export async function getActiveSubscriptionOfApp({ appId }: { appId: string }) {
 export async function checkSubscription({ appId }: { appId: string }) {
   const subscription = await getActiveSubscriptionOfApp({ appId });
   if (!subscription) throw new Error('Your subscription is not available');
+}
+
+export async function unsubscribe({ appId }: { appId: string }) {
+  const subscription = await getActiveSubscriptionOfApp({ appId });
+  if (!subscription) return undefined;
+
+  return payment.subscriptions.cancel(subscription.id);
 }
