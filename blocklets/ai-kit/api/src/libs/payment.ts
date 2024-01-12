@@ -1,3 +1,4 @@
+import { SubscriptionError, SubscriptionErrorType } from '@blocklet/ai-kit/api';
 import config from '@blocklet/sdk/lib/config';
 import payment from '@did-pay/client';
 
@@ -22,7 +23,7 @@ export async function getActiveSubscriptionOfApp({ appId }: { appId: string }) {
 
 export async function checkSubscription({ appId }: { appId: string }) {
   const subscription = await getActiveSubscriptionOfApp({ appId });
-  if (!subscription) throw new Error('Your subscription is not available');
+  if (!subscription) throw new SubscriptionError(SubscriptionErrorType.UNSUBSCRIBED);
 }
 
 export async function unsubscribe({ appId }: { appId: string }) {
