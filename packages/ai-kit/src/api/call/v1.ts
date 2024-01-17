@@ -9,6 +9,7 @@ import stringify from 'json-stable-stringify';
 import { joinURL } from 'ufo';
 
 import AIKitConfig from '../config';
+import { SubscriptionError, SubscriptionErrorType } from '../error';
 import {
   ChatCompletionChunk,
   ChatCompletionInput,
@@ -105,7 +106,14 @@ export async function chatCompletions(
 
         for await (const chunk of stream) {
           if (isChatCompletionError(chunk)) {
-            controller.error(new Error(chunk.error.message));
+            if (chunk.error.type) {
+              const error = new Error(chunk.error.message) as SubscriptionError;
+              error.type = chunk.error.type as SubscriptionErrorType;
+              error.timestamp = chunk.error.timestamp!;
+              controller.error(error);
+            } else {
+              controller.error(new Error(chunk.error.message));
+            }
             break;
           }
           controller.enqueue(chunk);
