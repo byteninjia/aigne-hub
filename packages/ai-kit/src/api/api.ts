@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-export const PREFIX = window.blocklet?.componentMountPoints.find((i) => i.name === 'ai-kit')?.mountPoint || '/';
+export const PREFIX =
+  (typeof window !== 'undefined' &&
+    window.blocklet?.componentMountPoints.find((i) => i.name === 'ai-kit')?.mountPoint) ||
+  '/';
 
 export const API_TIMEOUT = 30 * 1000;
 
