@@ -1,9 +1,11 @@
 import { AIKitServiceConfig, AppStatusResult, appStatus, setAppConfig, unsubscribe } from '@blocklet/ai-kit/api';
+import { TSubscriptionExpanded } from '@blocklet/payment-js';
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 
 export interface AIKitServiceStatus {
-  app?: AppStatusResult;
+  // FIXME: remove `{ subscription?: TSubscriptionExpanded }` after issue (https://github.com/sequelize/sequelize/issues/16268) fixed
+  app?: Omit<AppStatusResult, 'subscription'> & { subscription?: TSubscriptionExpanded };
   loading?: boolean;
   error?: Error;
   fetch: () => Promise<void>;
