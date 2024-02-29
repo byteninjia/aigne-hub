@@ -1,3 +1,7 @@
+## 0.1.19 (2024-2-29)
+
+- chore: use external tiktoken dep
+
 ## 0.1.18 (2024-2-29)
 
 - fix: the end time of the query for usage should include the end day
