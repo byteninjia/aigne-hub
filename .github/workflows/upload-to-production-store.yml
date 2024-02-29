@@ -23,9 +23,6 @@ jobs:
       - name: Install dependencies
         run: yarn
 
-      - name: Build packages
-        run: yarn workspace @blocklet/ai-kit build
-
       - name: Upload to production store
         uses: blocklet/action-workflow@v1
         with:
