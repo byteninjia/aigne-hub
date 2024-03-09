@@ -1,3 +1,7 @@
+## 0.1.22 (2024-3-9)
+
+- chore: bump version
+
 ## 0.1.21 (2024-3-6)
 
 - fix: determine the current env through `config.env.mode`
