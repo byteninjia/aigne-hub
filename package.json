@@ -1,7 +1,7 @@
 {
   "name": "ai-kit",
   "private": true,
-  "version": "0.1.27",
+  "version": "0.1.28",
   "workspaces": [
     "blocklets/*",
     "packages/*"
@@ -15,7 +15,7 @@
     "build:libs": "pnpm -F @blocklet/ai-kit build",
     "clean": "pnpm -r run clean",
     "prepare": "husky install",
-    "bump-version": "zx scripts/bump-version.mjs && pnpm install",
+    "bump-version": "zx scripts/bump-version.mjs",
     "update:deps": "npx -y taze -r -w && pnpm install"
   },
   "lint-staged": {

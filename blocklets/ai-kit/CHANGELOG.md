@@ -1,3 +1,7 @@
+## 0.1.28 (2024-4-28)
+
+- chore: update deps
+
 ## 0.1.27 (2024-4-19)
 
 - chore: chore: remove /config permission logic
