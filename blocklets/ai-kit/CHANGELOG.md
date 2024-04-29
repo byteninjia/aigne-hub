@@ -1,3 +1,7 @@
+## 0.1.29 (2024-4-30)
+
+- chore: update deps
+
 ## 0.1.28 (2024-4-28)
 
 - chore: update deps

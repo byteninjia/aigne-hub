@@ -1,6 +1,6 @@
 {
   "name": "@blocklet/ai-kit",
-  "version": "0.1.28",
+  "version": "0.1.29",
   "description": "The react.js component library for AI Kit",
   "publishConfig": {
     "access": "public"
@@ -95,9 +95,9 @@
   },
   "dependencies": {
     "@arcblock/did": "^1.18.115",
-    "@arcblock/ux": "^2.9.73",
+    "@arcblock/ux": "^2.9.76",
     "@blocklet/logger": "^1.16.26",
-    "@blocklet/payment-js": "^1.13.236",
+    "@blocklet/payment-js": "^1.13.238",
     "@blocklet/sdk": "^1.16.26",
     "@emotion/css": "^11.11.2",
     "@emotion/react": "^11.11.4",
@@ -127,7 +127,7 @@
     "recoil": "^0.7.7",
     "sequelize": "^6.37.3",
     "ufo": "^1.5.3",
-    "yaml": "^2.4.1",
+    "yaml": "^2.4.2",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
