@@ -1,3 +1,7 @@
+## 0.1.34 (2024-5-24)
+
+- chore: update deps
+
 ## 0.1.33 (2024-5-14)
 
 - chore: support tool choice
