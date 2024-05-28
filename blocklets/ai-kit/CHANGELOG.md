@@ -1,6 +1,10 @@
+## 0.1.36 (2024-5-28)
+
+- fix: force customer account for subscription detail url
+
 ## 0.1.35 (2024-5-28)
 
-- feat: support response_format parameter for othe chat completion api
+- feat: support response_format parameter for the chat completion api
 
 ## 0.1.34 (2024-5-24)
 

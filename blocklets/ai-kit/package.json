@@ -1,6 +1,6 @@
 {
   "name": "ai-kit",
-  "version": "0.1.35",
+  "version": "0.1.36",
   "author": "Arcblock <blocklet@arcblock.io> https://github.com/blocklet",
   "scripts": {
     "dev": "cross-env COMPONENT_STORE_URL=https://test.store.blocklet.dev blocklet dev",
@@ -37,7 +37,7 @@
     "@arcblock/ux": "^2.9.86",
     "@blocklet/ai-kit": "workspace:^",
     "@blocklet/logger": "^1.16.26",
-    "@blocklet/payment-js": "^1.13.265",
+    "@blocklet/payment-js": "^1.13.266",
     "@blocklet/sdk": "^1.16.26",
     "@blocklet/ui-react": "^2.9.86",
     "@dqbd/tiktoken": "^1.0.15",
