@@ -1,6 +1,6 @@
 {
   "name": "@blocklet/ai-kit",
-  "version": "0.1.40",
+  "version": "0.1.41",
   "description": "The react.js component library for AI Kit",
   "publishConfig": {
     "access": "public"
@@ -146,7 +146,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "storybook": "^8.1.10",
-    "typescript": "^5.4.5",
+    "typescript": "^5.5.2",
     "vite": "^5.3.1",
     "vite-plugin-build": "^0.10.0"
   }

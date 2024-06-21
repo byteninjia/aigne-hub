@@ -1,5 +1,4 @@
 import { useLocaleContext } from '@arcblock/ux/lib/Locale/context';
-import { Error } from '@mui/icons-material';
 import { Alert, AlertProps, CircularProgress, Stack } from '@mui/material';
 
 import SubscribeButton from './button';
@@ -30,8 +29,7 @@ function SubscribeErrorAlert({ error, ...props }: { error: any } & AlertProps) {
 
   return (
     <Alert
-      color="warning"
-      icon={<Error />}
+      severity={isUnsubscribeError && subscription && useAIKitService ? 'info' : 'warning'}
       {...props}
       sx={{
         px: 1,
@@ -41,7 +39,7 @@ function SubscribeErrorAlert({ error, ...props }: { error: any } & AlertProps) {
         },
         ...props.sx,
       }}>
-      {isUnsubscribeError && loading ? <CircularProgress size={24} /> : message}
+      {isUnsubscribeError && loading ? <CircularProgress size={18} /> : message}
 
       {isUnsubscribeError && (
         <Stack direction="row" sx={{ justifyContent: 'flex-end' }}>

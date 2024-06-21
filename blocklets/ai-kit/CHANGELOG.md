@@ -1,3 +1,7 @@
+## 0.1.41 (2024-6-21)
+
+- chore: set success color for the alert after the subscription activated
+
 ## 0.1.40 (2024-6-20)
 
 - fix: show switch ai service button in the error view
