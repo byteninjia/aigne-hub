@@ -1,3 +1,7 @@
+## 0.1.42 (2024-6-22)
+
+- chore: update deps
+
 ## 0.1.41 (2024-6-21)
 
 - chore: set success color for the alert after the subscription activated
