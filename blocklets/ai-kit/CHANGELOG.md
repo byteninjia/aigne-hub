@@ -1,3 +1,7 @@
+## 0.1.44 (2024-7-9)
+
+- chore: update deps
+
 ## 0.1.43 (2024-6-24)
 
 - chore: rethrow the error with the error type
