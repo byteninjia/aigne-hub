@@ -18,9 +18,11 @@
     "build": "pnpm build:libs && pnpm -F ai-kit build",
     "build:libs": "pnpm -F @blocklet/ai-kit build",
     "clean": "pnpm -r run clean",
-    "prepare": "husky install",
     "bump-version": "zx scripts/bump-version.mjs",
     "update:deps": "npx -y taze -r -w && pnpm install"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx lint-staged"
   },
   "lint-staged": {
     "*.{mjs,js,jsx,ts,tsx}": [
@@ -47,12 +49,12 @@
     "bumpp": "^9.4.1",
     "eslint": "^8.57.0",
     "eslint-plugin-prettier": "^5.2.1",
-    "husky": "^9.1.0",
     "import-sort-style-module": "^6.0.0",
     "lint-staged": "^15.2.7",
     "prettier": "^3.3.3",
     "prettier-plugin-import-sort": "^0.0.7",
     "rimraf": "^5.0.9",
+    "simple-git-hooks": "^2.11.1",
     "typescript": "^5.5.3",
     "zx": "^8.1.4"
   },
