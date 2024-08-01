@@ -15,7 +15,9 @@ declare module 'express-history-api-fallback';
 
 declare module 'express-async-errors';
 
-declare module '@blocklet/logger';
+declare module '@blocklet/logger' {
+  export default function createLogger(name: string): typeof console;
+}
 
 namespace Express {
   interface Request {
