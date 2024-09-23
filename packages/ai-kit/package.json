@@ -8,9 +8,10 @@
   "author": "Arcblock <blocklet@arcblock.io> https://github.com/blocklet",
   "homepage": "https://github.com/blocklet/ai-kit#readme",
   "license": "ISC",
+  "type": "module",
   "main": "./lib/cjs/index.js",
   "module": "./lib/esm/index.js",
-  "typings": "./lib/types/index.d.ts",
+  "types": "./lib/types/index.d.ts",
   "exports": {
     ".": {
       "import": "./lib/esm/index.js",
@@ -63,8 +64,8 @@
     "lint:fix": "npm run lint -- --fix",
     "pre-commit": "lint-staged",
     "build": "run-p build:*",
-    "build:cjs": "tsc --module commonjs --moduleResolution node --declaration --incremental false --outDir lib/cjs",
-    "build:esm": "tsc --module es2022 --declaration --incremental false --outDir lib/esm",
+    "build:cjs": "tsc --module commonjs --moduleResolution node --incremental false --outDir lib/cjs",
+    "build:esm": "tsc --module es2022 --incremental false --outDir lib/esm",
     "build:types": "tsc --declaration --emitDeclarationOnly --incremental false --outDir lib/types",
     "dev": "npm run storybook & npm run watch",
     "start": "npm run storybook",
