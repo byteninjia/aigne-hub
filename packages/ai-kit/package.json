@@ -1,6 +1,6 @@
 {
   "name": "@blocklet/ai-kit",
-  "version": "0.1.52",
+  "version": "0.1.53",
   "description": "The react.js component library for AI Kit",
   "publishConfig": {
     "access": "public"
@@ -8,7 +8,6 @@
   "author": "Arcblock <blocklet@arcblock.io> https://github.com/blocklet",
   "homepage": "https://github.com/blocklet/ai-kit#readme",
   "license": "ISC",
-  "type": "module",
   "main": "./lib/cjs/index.js",
   "module": "./lib/esm/index.js",
   "types": "./lib/types/index.d.ts",
