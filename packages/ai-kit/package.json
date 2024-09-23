@@ -1,6 +1,6 @@
 {
   "name": "@blocklet/ai-kit",
-  "version": "0.1.51",
+  "version": "0.1.52",
   "description": "The react.js component library for AI Kit",
   "publishConfig": {
     "access": "public"
@@ -49,6 +49,27 @@
       "types": "./lib/types/components/*.d.ts"
     }
   },
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./lib/types/index.d.ts"
+      ],
+      "api": [
+        "./lib/types/api/index.d.ts"
+      ],
+      "api/*": [
+        "./lib/types/api/*.d.ts",
+        "./lib/types/api/*/index.d.ts"
+      ],
+      "components": [
+        "./lib/types/components/index.d.ts"
+      ],
+      "components/*": [
+        "./lib/types/components/*.d.ts",
+        "./lib/types/components/*/index.d.ts"
+      ]
+    }
+  },
   "files": [
     "lib",
     "LICENSE",
@@ -66,7 +87,7 @@
     "build": "run-p build:*",
     "build:cjs": "tsc --module commonjs --moduleResolution node --incremental false --outDir lib/cjs",
     "build:esm": "tsc --module es2022 --incremental false --outDir lib/esm",
-    "build:types": "tsc --declaration --emitDeclarationOnly --incremental false --outDir lib/types",
+    "build:types": "tsc --module commonjs --declaration --emitDeclarationOnly --incremental false --outDir lib/types",
     "dev": "npm run storybook & npm run watch",
     "start": "npm run storybook",
     "watch": "vite build --watch",
