@@ -1,3 +1,7 @@
+## 0.1.54 (2024-9-24)
+
+- chore: use fetch instead of axios to support csrf
+
 ## 0.1.51 (2024-9-23)
 
 - chore: update deps
