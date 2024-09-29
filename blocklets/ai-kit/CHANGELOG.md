@@ -1,3 +1,7 @@
+## 0.1.57 (2024-9-29)
+
+- chore: update deps
+
 ## 0.1.56 (2024-9-26)
 
 - chore: optimize image previewer by image service
