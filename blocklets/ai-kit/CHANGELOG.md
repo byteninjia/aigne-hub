@@ -1,6 +1,6 @@
-## 0.1.63 (2024-11-1)
+## 0.1.64 (2024-11-10)
 
-- chore: polish screen shots
+- chore: polish screenshots
 
 ## 0.1.62 (2024-10-31)
 
