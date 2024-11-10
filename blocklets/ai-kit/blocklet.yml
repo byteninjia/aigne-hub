@@ -19,7 +19,6 @@ version: 0.1.63
 logo: screenshots/a9793769824431ba7220c198694a8baa.png
 files:
   - dist
-  - logo.png
   - screenshots
   - docs
   - api/dist/store/migrations/*.js
