@@ -1,6 +1,6 @@
 {
   "name": "@blocklet/ai-kit",
-  "version": "0.1.69",
+  "version": "0.1.70",
   "description": "The react.js component library for AI Kit",
   "publishConfig": {
     "access": "public"
@@ -102,7 +102,7 @@
   },
   "dependencies": {
     "@arcblock/did": "^1.19.9",
-    "@arcblock/ux": "^2.11.37",
+    "@arcblock/ux": "^2.11.42",
     "@blocklet/logger": "^1.16.38",
     "@blocklet/payment-js": "^1.18.6",
     "@blocklet/sdk": "^1.16.38",
