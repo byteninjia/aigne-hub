@@ -1,3 +1,7 @@
+## 0.1.75 (2025-5-12)
+
+- chore: update deps
+
 ## 0.1.74 (2025-4-28)
 
 - feat: support gpt-image-1 image edit
