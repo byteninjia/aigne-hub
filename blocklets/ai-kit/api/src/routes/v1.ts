@@ -1,6 +1,6 @@
 import { checkSubscription } from '@api/libs/payment';
 import { createAndReportUsage } from '@api/libs/usage';
-import { chatCompletion, checkModelAvailable } from '@api/providers';
+import { checkModelAvailable } from '@api/providers';
 import App from '@api/store/models/app';
 import {
   ChatCompletionChunk,
@@ -27,6 +27,7 @@ import { Config } from '../libs/env';
 import { processImageUrl } from '../libs/image';
 import logger from '../libs/logger';
 import { ensureAdmin, ensureComponentCall } from '../libs/security';
+import { chatCompletionByFrameworkModel } from '../providers/models';
 
 const router = Router();
 
@@ -199,7 +200,7 @@ router.post(
 
     const isEventStream = req.accepts().some((i) => i.startsWith('text/event-stream'));
 
-    const result = chatCompletion(input);
+    const result = await chatCompletionByFrameworkModel(input);
 
     let content = '';
     const toolCalls: NonNullable<ChatCompletionChunk['delta']['toolCalls']> = [];
