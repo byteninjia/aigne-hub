@@ -1,6 +1,6 @@
 {
   "name": "ai-kit",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "author": "Arcblock <blocklet@arcblock.io> https://github.com/blocklet",
   "scripts": {
     "dev": "cross-env COMPONENT_STORE_URL=https://test.store.blocklet.dev blocklet dev",
@@ -13,7 +13,7 @@
     "bundle": "run-s clean bundle:*",
     "bundle:client": "vite build",
     "bundle:api": "tsc -p tsconfig.api.json && tsc-alias -p tsconfig.api.json",
-    "bundle:blocklet": "blocklet bundle --compact --external 'sqlite3,@dqbd/tiktoken' --create-release",
+    "bundle:blocklet": "blocklet bundle --compact --external 'sqlite3,@dqbd/tiktoken,@aigne/sqlite' --create-release",
     "deploy": "npm run bundle && blocklet deploy .blocklet/bundle",
     "upload": "npm run bundle && blocklet upload .blocklet/release/blocklet.json"
   },
