@@ -743,7 +743,7 @@ fix: omit unused parameters of image generations
 
 ## 0.0.27 (2023-2-22)
 
-- fix: @blocklets/ai-kit bump version error
+- fix: @blocklets/core bump version error
 
 ## 0.0.26 (2023-2-22)
 
