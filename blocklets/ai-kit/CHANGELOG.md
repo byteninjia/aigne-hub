@@ -1,3 +1,8 @@
+## 0.2.7 (2025-7-21)
+
+- feat: enhance AIGNE Hub with multi-provider support, credit billing, and updated documentation
+- rename @blocklet/ai-kit to @blocklet/aigne-hub
+
 ## 0.2.6 (2025-7-21)
 
 - fix: downgrade express to 4.x
@@ -432,7 +437,7 @@ feat: support multi-provider ai integration and credit-based billing system
 
 ## 0.0.99 (2023-12-25)
 
-- fix: update exports of @blocklet/ai-kit/api
+- fix: update exports of @blocklet/aigne-hub/api
 
 ## 0.0.98 (2023-12-25)
 
@@ -734,7 +739,7 @@ fix: omit unused parameters of image generations
 
 ## 0.0.28 (2023-2-23)
 
-- chore: build @blocklet/ai-kit before release bundle
+- chore: build @blocklet/aigne-hub before release bundle
 
 ## 0.0.27 (2023-2-22)
 

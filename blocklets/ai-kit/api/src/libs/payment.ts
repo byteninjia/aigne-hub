@@ -1,5 +1,5 @@
-import { CreditError, CreditErrorType, SubscriptionError, SubscriptionErrorType } from '@blocklet/ai-kit/api';
-import { appStatus } from '@blocklet/ai-kit/api/call/app';
+import { CreditError, CreditErrorType, SubscriptionError, SubscriptionErrorType } from '@blocklet/aigne-hub/api';
+import { appStatus } from '@blocklet/aigne-hub/api/call/app';
 import payment, { Subscription, TMeterEventExpanded } from '@blocklet/payment-js';
 import { getComponentMountPoint } from '@blocklet/sdk';
 import config from '@blocklet/sdk/lib/config';
@@ -111,7 +111,7 @@ export async function ensureDefaultCreditPrice() {
         return null;
       }
       await payment.products.create({
-        name: 'Basic AIC Packs',
+        name: 'Basic AIGNE Hub Credit Packs',
         description: `It is a basic pack of ${METER_UNIT}, you can pay to get more ${METER_UNIT} credits.`,
         type: 'credit',
         prices: [
