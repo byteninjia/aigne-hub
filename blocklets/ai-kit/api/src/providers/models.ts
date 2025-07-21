@@ -17,6 +17,9 @@ import { OpenRouterChatModel } from '@aigne/open-router';
 import { OpenAIChatModel } from '@aigne/openai';
 import type { OpenAIChatModelOptions } from '@aigne/openai';
 import { XAIChatModel } from '@aigne/xai';
+import { getModelNameWithProvider } from '@api/libs/ai-provider';
+import AiCredential from '@api/store/models/ai-credential';
+import AiProvider from '@api/store/models/ai-provider';
 import { SubscriptionError, SubscriptionErrorType } from '@blocklet/ai-kit/api';
 import { ChatCompletionChunk, ChatCompletionInput, ChatCompletionResponse } from '@blocklet/ai-kit/api/types';
 import { NodeHttpHandler, streamCollector } from '@smithy/node-http-handler';
@@ -88,7 +91,7 @@ const providers = {
   deepseek: 'deepseek',
   google: 'google',
   ollama: 'ollama',
-  openRouter: 'openRouter',
+  openrouter: 'openrouter',
   xai: 'xai',
 } as const;
 
@@ -151,7 +154,7 @@ export function availableModels(): {
     },
     {
       name: OpenRouterChatModel.name,
-      provider: providers.openRouter,
+      provider: providers.openrouter,
       create: (params) => new OpenRouterChatModel({ ...params, clientOptions }),
     },
     {
@@ -166,7 +169,7 @@ const currentApiKeyIndex: { [key in AIProvider]?: number } = {};
 const apiKeys: { [key in AIProvider]: () => string[] } = {
   google: () => Config.geminiApiKey,
   openai: () => Config.openaiApiKey,
-  openRouter: () => Config.openRouterApiKey,
+  openrouter: () => Config.openRouterApiKey,
   anthropic: () => Config.anthropicApiKey,
   deepseek: () => Config.deepseekApiKey,
   bedrock: () => Config.awsAccessKeyId,
@@ -212,7 +215,7 @@ const BASE_URL_CONFIG_MAP = {
   ollama: () => Config.ollamaBaseURL,
 } as const;
 
-export function loadModel(
+export async function loadModel(
   model: string,
   {
     provider,
@@ -229,7 +232,7 @@ export function loadModel(
 
   if (!m) throw new Error(`Provider ${provider} model ${model} not found, Please check the model name and provider.`);
 
-  let params: {
+  const params: {
     apiKey?: string;
     baseURL?: string;
     accessKeyId?: string;
@@ -237,22 +240,7 @@ export function loadModel(
     region?: string;
     modelOptions?: ChatModelOptions;
     clientOptions?: OpenAIChatModelOptions['clientOptions'];
-  };
-
-  if (m.provider === 'bedrock') {
-    params = getBedrockConfig();
-  } else {
-    params = getAIApiKey(m.provider);
-  }
-
-  const baseURLGetter = BASE_URL_CONFIG_MAP[m.provider as keyof typeof BASE_URL_CONFIG_MAP];
-  if (baseURLGetter) {
-    const baseURL = baseURLGetter();
-
-    if (baseURL) {
-      params.baseURL = baseURL;
-    }
-  }
+  } = await getProviderCredentials(m.provider);
 
   if (modelOptions) {
     params.modelOptions = modelOptions;
@@ -265,20 +253,19 @@ export function loadModel(
   return m.create({ ...params, model });
 }
 
-export const getModel = (
+export const getModel = async (
   input: ChatCompletionInput & Required<Pick<ChatCompletionInput, 'model'>>,
   options?: {
     modelOptions?: ChatModelOptions;
     clientOptions?: OpenAIChatModelOptions['clientOptions'];
   }
 ) => {
-  const modelArray = input.model.split('/');
-  const [providerName, name] = [modelArray[0], modelArray.slice(1).join('/')];
+  const { providerName, modelName: name } = getModelNameWithProvider(input.model);
 
   const getDefaultProvider = () => {
-    if (input.model.startsWith('gemini')) return 'google';
-    if (input.model.startsWith('gpt')) return 'openai';
-    if (input.model.startsWith('openRouter')) return 'openRouter';
+    if (input.model.toLowerCase().startsWith('gemini')) return 'google';
+    if (input.model.toLowerCase().startsWith('gpt')) return 'openai';
+    if (input.model.toLowerCase().startsWith('openrouter')) return 'openrouter';
 
     if (!providerName || !name) {
       throw new Error(
@@ -292,14 +279,72 @@ export const getModel = (
   const [provider, model] = providerName && name ? [providerName, name] : [getDefaultProvider(), input.model];
   if (!model) throw new Error(`Provider ${provider} model ${input.model} not found`);
 
-  const m = loadModel(model, { provider, ...options });
+  const m = await loadModel(model, { provider, ...options });
   return m;
 };
 
+export async function getProviderCredentials(provider: string) {
+  const callback = (err: Error) => {
+    try {
+      let params: {
+        apiKey?: string;
+        baseURL?: string;
+        accessKeyId?: string;
+        secretAccessKey?: string;
+        region?: string;
+      };
+      if (provider === 'bedrock') {
+        params = getBedrockConfig();
+      } else {
+        params = getAIApiKey(provider as AIProvider);
+      }
+      const baseURLGetter = BASE_URL_CONFIG_MAP[provider as keyof typeof BASE_URL_CONFIG_MAP];
+      if (baseURLGetter) {
+        const baseURL = baseURLGetter();
+        if (baseURL) {
+          params.baseURL = baseURL;
+        }
+      }
+      return params;
+    } catch {
+      throw err;
+    }
+  };
+
+  const providerRecord = await AiProvider.findOne({
+    where: { name: provider, enabled: true },
+  });
+  if (!providerRecord) {
+    return callback(new Error(`Provider ${provider} not found`));
+  }
+
+  const credentials = await AiCredential.findAll({
+    where: { providerId: providerRecord.id, active: true },
+  });
+
+  if (credentials.length === 0) {
+    return callback(new Error(`No credentials found for provider ${provider}`));
+  }
+
+  const credential = await AiCredential.getNextAvailableCredential(providerRecord!.id);
+
+  if (!credential) {
+    return callback(new Error(`No active credentials found for provider ${provider}`));
+  }
+  await credential.updateUsage();
+  const value = AiCredential.decryptCredentialValue(credential!.credentialValue);
+  return {
+    apiKey: value.api_key,
+    baseURL: providerRecord?.baseUrl,
+    accessKeyId: value.access_key_id,
+    secretAccessKey: value.secret_access_key,
+    region: providerRecord?.region,
+  };
+}
 export async function chatCompletionByFrameworkModel(
   input: ChatCompletionInput & Required<Pick<ChatCompletionInput, 'model'>>
 ): Promise<AsyncGenerator<ChatCompletionResponse>> {
-  const model = getModel(input);
+  const model = await getModel(input);
 
   const response = await model.invoke(
     {

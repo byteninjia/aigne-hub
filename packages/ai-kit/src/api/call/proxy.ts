@@ -20,7 +20,11 @@ export function proxyToAIKit(
     | '/api/v1/audio/speech'
     | '/api/app/status'
     | '/api/app/usage'
-    | '/api/app/register',
+    | '/api/app/register'
+    | '/api/user/credit/grants'
+    | '/api/user/credit/balance'
+    | '/api/user/credit/transactions'
+    | '/api/user/credit/payment-link',
   {
     useAIKitService,
     proxyReqHeaders = ['accept', 'content-type'],
@@ -38,13 +42,14 @@ export function proxyToAIKit(
       withQuery(joinURL(useAIKitService ? AI_KIT_BASE_URL : getComponentWebEndpoint('ai-kit'), path), req.query)
     );
 
+    const userDid = req.user?.did || req?.get('x-app-user-did');
     const proxyReq = (url.protocol === 'https:' ? https : http).request(
       stringifyParsedURL(url),
       {
         headers: {
           ...pick(req.headers, ...proxyReqHeaders),
           ...(useAIKitService
-            ? getRemoteComponentCallHeaders(req.body || {})
+            ? getRemoteComponentCallHeaders(req.body || {}, userDid)
             : (() => {
                 const { iat, exp, sig, version } = getSignData({
                   data: req.body,

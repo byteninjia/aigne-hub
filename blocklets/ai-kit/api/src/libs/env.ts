@@ -8,8 +8,28 @@ export const isDevelopment = config.env.mode === 'development';
 
 export const PAYMENT_DID = 'z2qaCNvKMv5GjouKdcDWexv6WqtHbpNPQDnAk';
 
+export const OBSERVABILITY_DID = 'z2qa2GCqPJkufzqF98D8o7PWHrRRSHpYkNhEh';
+export const AIGNE_HUB_DID = 'z8ia3xzq2tMq8CRHfaXj1BTYJyYnEcHbqP8cJ';
+
+export const METER_NAME = 'agent-hub-ai-meter';
+
+export const METER_UNIT = 'AIC';
+
+export const DEFAULT_CREDIT_PRICE_KEY = 'DEFAULT_CREDIT_UNIT_PRICE';
+
+export const MODEL_RATE_TYPE = {
+  Text: 'text',
+  Image: 'image',
+  Embedding: 'embedding',
+};
+
 type Pricing = {
+  creditPaymentLink: string;
+  creditBasedBillingEnabled: boolean;
   subscriptionPaymentLink: string;
+  newUserCreditGrantEnabled: boolean;
+  newUserCreditGrantAmount: number;
+  creditExpirationDays: number;
   subscriptionProductId: string;
   basePricePerUnit: number;
   onlyEnableModelsInPricing?: boolean;
@@ -191,13 +211,61 @@ export const Config = {
     return this._maxRetries;
   },
 
+  _baseCreditBilling: undefined as boolean | undefined,
+  get baseCreditBilling() {
+    if (this._baseCreditBilling === undefined) {
+      this._baseCreditBilling = config.env.preferences.baseCreditBilling ?? false;
+    }
+    return this._baseCreditBilling;
+  },
+
+  _creditPaymentLink: undefined as string | undefined,
+  get creditPaymentLink() {
+    if (this._creditPaymentLink === undefined) {
+      this._creditPaymentLink = config.env.preferences.creditPaymentLink;
+    }
+    return this._creditPaymentLink;
+  },
+
+  _creditBasedBillingEnabled: undefined as boolean | undefined,
+  get creditBasedBillingEnabled() {
+    if (this._creditBasedBillingEnabled === undefined) {
+      this._creditBasedBillingEnabled = config.env.preferences?.creditBasedBillingEnabled ?? false;
+    }
+    return this._creditBasedBillingEnabled;
+  },
+
+  _newUserCreditGrantEnabled: undefined as boolean | undefined,
+  get newUserCreditGrantEnabled() {
+    if (this._newUserCreditGrantEnabled === undefined) {
+      this._newUserCreditGrantEnabled = config.env.preferences.newUserCreditGrantEnabled ?? false;
+    }
+    return this._newUserCreditGrantEnabled;
+  },
+
+  _newUserCreditGrantAmount: undefined as number | undefined,
+  get newUserCreditGrantAmount() {
+    if (this._newUserCreditGrantAmount === undefined) {
+      this._newUserCreditGrantAmount = config.env.preferences.newUserCreditGrantAmount ?? 100;
+    }
+    return this._newUserCreditGrantAmount;
+  },
+
+  _creditExpirationDays: undefined as number | undefined,
+  get creditExpirationDays() {
+    if (this._creditExpirationDays === undefined) {
+      this._creditExpirationDays = config.env.preferences.creditExpirationDays ?? 0;
+    }
+    return this._creditExpirationDays;
+  },
+
   _pricing: undefined as Pricing | undefined | null,
   get pricing() {
     if (this._pricing === undefined) {
       const res = Joi.object<Pricing>({
-        subscriptionPaymentLink: Joi.string().required(),
-        subscriptionProductId: Joi.string().required(),
-        basePricePerUnit: Joi.number().min(0).required(),
+        subscriptionPaymentLink: Joi.string().optional(),
+        subscriptionProductId: Joi.string().optional(),
+        basePricePerUnit: Joi.number().min(0).optional(),
         onlyEnableModelsInPricing: Joi.boolean().empty([null, '']),
         list: Joi.array().items(
           Joi.object({
@@ -229,7 +297,7 @@ export const Config = {
   },
 
   get usageReportThrottleTime() {
-    return 600e3;
+    return process.env.USAGE_REPORT_THROTTLE_TIME ? parseInt(process.env.USAGE_REPORT_THROTTLE_TIME, 10) : 600e3;
   },
 
   get dataDir() {

@@ -1,5 +1,5 @@
 name: ai-kit
-title: AI Kit
+title: AIGNE Hub
 description: The decentralized AI access solution for blocklets
 keywords:
   - ai
@@ -15,8 +15,8 @@ repository:
   type: git
   url: git+https://github.com/blocklet/ai-kit.git
 specVersion: 1.2.8
-version: 0.2.4
-logo: screenshots/a9793769824431ba7220c198694a8baa.png
+version: 0.2.5
+logo: screenshots/logo.jpg
 files:
   - dist
   - screenshots
@@ -53,20 +53,6 @@ scripts:
   preStart: node api/hooks/pre-start.js
   dev: npm run start
 environments:
-  - name: OPENAI_API_KEY
-    description: Your OpenAI apiKey separate with commas.
-    required: false
-    default: ''
-    secure: true
-    shared: false
-  - name: OPENAI_BASE_URL
-    description: >-
-      Override the default base URL for the API, e.g.,
-      "https://api.example.com/v2/".
-    required: false
-    default: ''
-    secure: false
-    shared: false
   - name: VERBOSE
     description: Logging input and output of AI
     required: false
@@ -79,18 +65,6 @@ environments:
     default: ''
     secure: false
     shared: false
-  - name: GEMINI_API_KEY
-    description: Your Gemini apiKey separate with commas.
-    required: false
-    default: ''
-    secure: true
-    shared: false
-  - name: OPEN_ROUTER_API_KEY
-    description: Your OpenRouter apiKey separate with commas.
-    required: false
-    default: ''
-    secure: true
-    shared: false
 capabilities:
   clusterMode: false
   component: true
@@ -98,8 +72,27 @@ capabilities:
 screenshots:
   - 45f35c20b2c0cd44b0fb7bbd6d171dff.png
   - 3f17ec588ba4a4bcfb162bf7db229b60.png
-components: []
+components:
+  - name: z2qa2GCqPJkufzqF98D8o7PWHrRRSHpYkNhEh
+    title: Observability
+    mountPoint: /z2qa2GCqPJkufzqF98D8o7PWHrRRSHpYkNhEh
+    source:
+      store: https://store.blocklet.dev
+      name: z2qa2GCqPJkufzqF98D8o7PWHrRRSHpYkNhEh
+      version: latest
 navigation:
+  - id: settings
+    title:
+      en: Config
+      zh: 设置
+    icon: ion:settings-outline
+    link: /config
+    section:
+      - dashboard
+      - sessionManager
+    role:
+      - admin
+      - owner
   - id: playground
     title:
       en: Playground
@@ -108,17 +101,6 @@ navigation:
     link: /playground
     section:
       - sessionManager
-      - dashboard
-    role:
-      - admin
-      - owner
-  - id: billing
-    title:
-      en: Billing
-      zh: 账单
-    icon: uil:bill
-    link: /billing
-    section:
       - dashboard
     role:
       - admin
