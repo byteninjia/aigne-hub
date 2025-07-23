@@ -3,7 +3,7 @@ import { Box, Typography } from '@mui/material';
 
 export function CreditRateFormula() {
   const { t } = useLocaleContext();
-  const baseCreditPrice = window.blocklet?.preferences?.baseCreditPrice || 0.00000025;
+  const baseCreditPrice = window.blocklet?.preferences?.baseCreditPrice || 0.0000025;
   const targetProfitMargin = window.blocklet?.preferences?.targetProfitMargin || 2;
 
   return (
@@ -53,7 +53,7 @@ export function CreditRateFormula() {
                 px: 1,
               }}>
               <Box component="span" sx={{ fontWeight: 500 }}>
-                {t('config.modelRates.configInfo.creditPrice')}
+                {t('config.modelRates.configInfo.modelTokenCost')}
               </Box>
               <Box component="span" sx={{ mx: 1, fontSize: '1.1rem' }}>
                 ×
@@ -75,7 +75,7 @@ export function CreditRateFormula() {
                 display: 'block',
               }}>
               <Box component="span" sx={{ fontWeight: 500 }}>
-                {t('config.modelRates.configInfo.modelTokenCost')}
+                {t('config.modelRates.configInfo.creditPrice')}
               </Box>
             </Box>
           </Box>
@@ -91,16 +91,16 @@ export function CreditRateFormula() {
             • <strong>R</strong> = {t('config.modelRates.configInfo.tokenConsumption')}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            • <strong>{t('config.modelRates.configInfo.creditPrice')}</strong>：
-            {t('config.modelRates.configInfo.creditPriceDesc')}
+            • <strong>{t('config.modelRates.configInfo.modelTokenCost')}</strong>：
+            {t('config.modelRates.configInfo.modelCostDesc')}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
             • <strong>{t('config.modelRates.configInfo.targetProfitMargin')}</strong>：
             {t('config.modelRates.configInfo.profitMarginDesc')}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            • <strong>{t('config.modelRates.configInfo.modelTokenCost')}</strong>：
-            {t('config.modelRates.configInfo.modelCostDesc')}
+            • <strong>{t('config.modelRates.configInfo.creditPrice')}</strong>：
+            {t('config.modelRates.configInfo.creditPriceDesc')}
           </Typography>
         </Box>
         <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1, display: 'block' }}>

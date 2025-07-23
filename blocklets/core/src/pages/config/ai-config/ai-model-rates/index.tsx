@@ -37,8 +37,8 @@ export default function AIModelRates() {
   const [rateToDelete, setRateToDelete] = useState<ModelRate | null>(null);
 
   // 从 blocklet preferences 获取配置
-  const baseCreditPrice = window.blocklet?.preferences?.baseCreditPrice || 0.00000025;
-  const targetProfitMargin = window.blocklet?.preferences?.targetProfitMargin || 2;
+  const baseCreditPrice = window.blocklet?.preferences?.baseCreditPrice || 0.0000025;
+  const targetProfitMargin = window.blocklet?.preferences?.targetProfitMargin || 0;
 
   // 获取所有模型费率
   const fetchModelRates = async () => {
@@ -457,7 +457,7 @@ export default function AIModelRates() {
                       border: '1px solid',
                       borderColor: 'divider',
                       width: 'fit-content',
-                      minWidth: { xs: 'auto', sm: 400 },
+                      minWidth: { xs: 'auto', sm: 500 },
                     },
                   },
                 }}>
