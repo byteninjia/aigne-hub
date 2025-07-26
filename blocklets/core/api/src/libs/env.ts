@@ -17,6 +17,8 @@ export const METER_UNIT = 'AHC';
 
 export const DEFAULT_CREDIT_PRICE_KEY = 'DEFAULT_CREDIT_UNIT_PRICE';
 
+export const DEFAULT_CREDIT_PAYMENT_LINK_KEY = 'DEFAULT_AHC_PACKS_LINK';
+
 export const MODEL_RATE_TYPE = {
   Text: 'text',
   Image: 'image',
@@ -225,6 +227,9 @@ export const Config = {
       this._creditPaymentLink = config.env.preferences.creditPaymentLink;
     }
     return this._creditPaymentLink;
+  },
+  set creditPaymentLink(value: string | undefined) {
+    this._creditPaymentLink = value;
   },
 
   _creditBasedBillingEnabled: undefined as boolean | undefined,
