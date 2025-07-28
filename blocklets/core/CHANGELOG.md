@@ -1,3 +1,7 @@
+## 0.2.16 (2025-7-28)
+
+- feat(core): add user info API and UserCreditCard component
+
 ## 0.2.15 (2025-7-26)
 
 - feat(api): move event subscription logic to separate listener module
