@@ -1,3 +1,7 @@
+## 0.3.10 (2025-8-9)
+
+- chore: bump deps to latest
+
 ## 0.3.9 (2025-8-9)
 
 - chore: bump deps to latest
