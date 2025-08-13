@@ -3,7 +3,7 @@ import { appStatus } from '@blocklet/aigne-hub/api/call/app';
 import { BlockletStatus } from '@blocklet/constant';
 import { CustomError } from '@blocklet/error';
 import payment, { Subscription, TMeterEventExpanded } from '@blocklet/payment-js';
-import { getComponentMountPoint } from '@blocklet/sdk';
+import { getComponentMountPoint, getUrl } from '@blocklet/sdk';
 import config from '@blocklet/sdk/lib/config';
 import { toBN } from '@ocap/util';
 import difference from 'lodash/difference';
@@ -310,6 +310,9 @@ export async function checkUserCreditBalance({ userDid }: { userDid: string }) {
     let link: string | null = null;
     try {
       link = await getCreditPaymentLink();
+      link = withQuery(link || '', {
+        ...getConnectQueryParam({ userDid }),
+      });
     } catch (err) {
       logger.error('failed to get credit payment link', { err });
     }
@@ -452,6 +455,14 @@ export function getUserProfileLink(userDid: string) {
   return joinURL(
     getPaymentKitPrefix(),
     withQuery('/customer', {
+      ...getConnectQueryParam({ userDid }),
+    })
+  );
+}
+
+export function getCreditUsageLink(userDid: string) {
+  return getUrl(
+    withQuery('/credit-usage', {
       ...getConnectQueryParam({ userDid }),
     })
   );
