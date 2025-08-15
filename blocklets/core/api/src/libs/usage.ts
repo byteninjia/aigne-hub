@@ -246,7 +246,7 @@ async function reportUsageV2({ appId, userDid }: { appId: string; userDid: strin
         logger.info('create meter event', { quantity });
         await createMeterEvent({
           userDid,
-          amount: quantity || 0,
+          amount: new BigNumber(quantity).decimalPlaces(2).toNumber(),
           metadata: {
             appId,
           },
@@ -276,6 +276,7 @@ export async function createUsageAndCompleteModelCall({
   userDid,
   additionalMetrics = {},
   metadata = {},
+  creditBasedBillingEnabled = true,
 }: {
   req: Request;
   type: CallType;
@@ -288,22 +289,27 @@ export async function createUsageAndCompleteModelCall({
   userDid: string;
   additionalMetrics?: Record<string, any>;
   metadata?: Record<string, any>;
+  creditBasedBillingEnabled?: boolean;
 }): Promise<number | undefined> {
   try {
-    // Create Usage record using mapped type
-    const credits = await createAndReportUsageV2({
-      // @ts-ignore
-      type,
-      model,
-      modelParams,
-      promptTokens,
-      completionTokens,
-      numberOfImageGeneration,
-      appId,
-      userDid,
-    });
+    let credits: number | undefined = 0;
 
-    // Complete ModelCall record
+    // Only create usage record if credit-based billing is enabled
+    if (creditBasedBillingEnabled) {
+      credits = await createAndReportUsageV2({
+        // @ts-ignore
+        type,
+        model,
+        modelParams,
+        promptTokens,
+        completionTokens,
+        numberOfImageGeneration,
+        appId,
+        userDid,
+      });
+    }
+
+    // Always complete ModelCall record regardless of billing mode
     if (req.modelCallContext) {
       await req.modelCallContext.complete({
         promptTokens,
@@ -325,7 +331,7 @@ export async function createUsageAndCompleteModelCall({
   } catch (error) {
     logger.error('Error in createUsageAndCompleteModelCall', { error });
 
-    // Mark ModelCall as failed
+    // Always mark ModelCall as failed regardless of billing mode
     if (req.modelCallContext) {
       await req.modelCallContext.fail(error.message || 'Failed to create usage record', {
         promptTokens,

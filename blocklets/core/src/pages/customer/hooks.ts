@@ -11,18 +11,16 @@ export interface UsageStats {
   summary: {
     totalCredits: number;
     totalCalls: number;
-    byType: {
-      chatCompletion?: {
+    modelCount: number;
+    byType: Record<
+      string,
+      {
         totalUsage: number;
         totalCredits: number;
         totalCalls: number;
-      };
-      imageGeneration?: {
-        totalUsage: number;
-        totalCredits: number;
-        totalCalls: number;
-      };
-    };
+        successCalls: number;
+      }
+    >;
   };
   dailyStats: Array<{
     date: string;
@@ -45,8 +43,30 @@ export interface UsageStats {
     successRate: number;
   }>;
   trendComparison?: {
-    current: { totalUsage: number; totalCredits: number; totalCalls: number };
-    previous: { totalUsage: number; totalCredits: number; totalCalls: number };
+    current: {
+      totalUsage: number;
+      totalCredits: number;
+      totalCalls: number;
+      byType: Record<
+        string,
+        {
+          totalUsage: number;
+          totalCalls: number;
+        }
+      >;
+    };
+    previous: {
+      totalUsage: number;
+      totalCredits: number;
+      totalCalls: number;
+      byType: Record<
+        string,
+        {
+          totalUsage: number;
+          totalCalls: number;
+        }
+      >;
+    };
     growth: { usageGrowth: number; creditsGrowth: number; callsGrowth: number };
   } | null;
 }

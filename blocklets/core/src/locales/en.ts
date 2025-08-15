@@ -25,6 +25,44 @@ export default flatten({
   enterHint: 'Enter to create',
   type: 'Type',
   model: 'Model',
+  viewPricing: 'View Model Pricing',
+
+  // Pricing page
+  pricing: {
+    title: 'AIGNE Hub Model Pricing',
+    subtitle:
+      'Transparent pricing, pay-as-you-use. Explore our rich AI model library and find the models that best fit your project',
+    searchPlaceholder: 'Search model names, providers...',
+    filters: {
+      providers: 'Supported Providers',
+      allProviders: 'All Providers',
+      types: 'Model Types',
+      allModels: 'All Models',
+      textGeneration: 'Text Generation',
+      imageGeneration: 'Image Generation',
+      embedding: 'Embedding',
+      audioTranscription: 'Audio Transcription',
+      sortBy: 'Sort By',
+      priceDefault: 'By Price',
+      priceLowToHigh: 'Price: Low to High',
+      priceHighToLow: 'Price: High to Low',
+    },
+    table: {
+      model: 'Model',
+      provider: 'Provider',
+      type: 'Type',
+      inputPrice: 'Input Price',
+      outputPrice: 'Output Price',
+      contextWindow: 'Context',
+      status: 'Status',
+      actions: 'Actions',
+    },
+    status: {
+      available: 'Available',
+      pending: 'Pending',
+    },
+  },
+
   // AIGNE Hub integrations
   welcome: 'Welcome to AIGNE Hub',
   welcomeDesc:
@@ -236,15 +274,6 @@ export default flatten({
           credit: '1M = 1,000,000 AIGNE Hub Credits (per million AIGNE Hub Credits)',
           token: '1M = 1,000,000 tokens (per million tokens)',
         },
-        search: {
-          placeholder: 'Search model name, display name or description',
-        },
-        sort: {
-          createdAt: 'Created At',
-        },
-        pagination: {
-          showing: 'Showing {from}-{to} of {total}',
-        },
       },
 
       // Delete dialog
@@ -378,13 +407,18 @@ export default flatten({
     addCredits: 'Buy Credits',
     totalCreditsUsed: 'Total Credits Used',
     totalUsage: 'Total Model Usage',
+    totalTokens: 'Total Tokens',
+    totalImages: 'Total Images Generated',
     totalRequests: 'Total Calls',
     dailyCreditsUsage: 'Daily Credits Trend',
     dailyUsage: 'Daily Usage Trend',
     tokenUsage: 'Token Usage',
     modelUsage: 'Model Usage',
     modelUsageStats: 'Model Usage Statistics',
-    modelUsageStatsDescription: 'Your most used models in the period',
+    modelUsageStatsDescription: 'Top most used models in the period',
+    modelUsageStatsTotal: 'Total {total} models called in the period',
+    modelUsageSummaryDescription:
+      'This value is the combined usage across all models (units may vary by model type). Hover to view detailed usage.',
     ofTotalUsage: 'of total calls',
     callHistory: 'Call History',
     callHistoryDescription: 'Detailed log of all model API calls',
@@ -393,7 +427,7 @@ export default flatten({
     timestamp: 'Timestamp',
     noCallsFound: 'No calls found matching your criteria',
     dailyTokenUsage: 'Daily Token Usage',
-    noLimit: 'Infinity',
+    noLimit: 'No Limit',
     modelUsageStatsEmpty: 'No model usage records',
     dailyUsageEmpty: 'No usage records',
     refresh: 'Refresh Usage',

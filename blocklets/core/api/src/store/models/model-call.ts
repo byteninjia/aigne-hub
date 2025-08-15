@@ -306,6 +306,7 @@ export default class ModelCall extends Model<InferAttributes<ModelCall>, InferCr
   }): Promise<
     Array<{
       date: string;
+      timestamp: number;
       byType: { [key: string]: { totalUsage: number; totalCalls: number } };
       totalCredits: number;
       totalCalls: number;
@@ -336,8 +337,10 @@ export default class ModelCall extends Model<InferAttributes<ModelCall>, InferCr
       const type = call.type || 'unknown';
 
       if (!dailyStats.has(date)) {
+        const dayTimestamp = Math.floor(new Date(`${date}T00:00:00.000Z`).getTime() / 1000);
         dailyStats.set(date, {
           date,
+          timestamp: dayTimestamp,
           byType: {},
           totalCredits: 0,
           totalCalls: 0,
@@ -372,8 +375,8 @@ export default class ModelCall extends Model<InferAttributes<ModelCall>, InferCr
     startTime?: number;
     endTime?: number;
     limit?: number;
-  }): Promise<
-    Array<{
+  }): Promise<{
+    list: Array<{
       providerId: string;
       provider: {
         id: string;
@@ -381,13 +384,10 @@ export default class ModelCall extends Model<InferAttributes<ModelCall>, InferCr
         displayName: string;
       };
       model: string;
-      type: CallType;
-      totalUsage: number;
-      totalCredits: number;
       totalCalls: number;
-      successRate: number;
-    }>
-  > {
+    }>;
+    totalModelCount: number;
+  }> {
     const whereConditions: string[] = [];
     const replacements: any = { limit };
 
@@ -408,48 +408,68 @@ export default class ModelCall extends Model<InferAttributes<ModelCall>, InferCr
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    const query = `
+    const topModelsQuery = `
       SELECT 
-        mc."providerId",
-        mc."model",
-        mc."type",
-        ap."name" as "providerName",
-        ap."displayName" as "providerDisplayName",
-        SUM(mc."totalUsage") as "totalUsage",
-        SUM(mc."credits") as "totalCredits",
-        COUNT(*) as "totalCalls",
-        SUM(CASE WHEN mc."status" = 'success' THEN 1 ELSE 0 END) as "successCalls"
-      FROM "ModelCalls" mc
-      LEFT JOIN "AiProviders" ap ON mc."providerId" = ap."id"
-      ${whereClause.replace(/"(\w+)"/g, 'mc."$1"')}
-      GROUP BY mc."providerId", mc."model", mc."type", ap."name", ap."displayName"
-      ORDER BY SUM(mc."totalUsage") DESC
+        "model",
+        MIN("providerId") as "providerId",
+        COUNT(*) as "totalCalls"
+      FROM "ModelCalls" 
+      ${whereClause}
+      GROUP BY "model"
+      ORDER BY COUNT(*) DESC
       LIMIT :limit
     `;
 
-    const results = (await sequelize.query(query, {
-      type: QueryTypes.SELECT,
-      replacements,
-    })) as any[];
+    const totalCountQuery = `
+      SELECT COUNT(DISTINCT "model") as "totalModels"
+      FROM "ModelCalls" 
+      ${whereClause}
+    `;
 
-    return results.map((result: any) => ({
+    const [topModelsResults, totalCountResults] = await Promise.all([
+      sequelize.query(topModelsQuery, {
+        type: QueryTypes.SELECT,
+        replacements,
+      }),
+      sequelize.query(totalCountQuery, {
+        type: QueryTypes.SELECT,
+        replacements: { ...replacements, limit: undefined },
+      }),
+    ]);
+
+    if (topModelsResults.length === 0) {
+      return {
+        list: [],
+        totalModelCount: 0,
+      };
+    }
+
+    const providerIds = [...new Set(topModelsResults.map((result: any) => result.providerId))];
+    const providers = await AiProvider.findAll({
+      where: {
+        id: { [Op.in]: providerIds },
+      },
+    });
+
+    const providerMap = new Map(providers.map((provider) => [provider.id, provider]));
+
+    const list = (topModelsResults as any[]).map((result: any) => ({
       providerId: result.providerId,
       provider: {
         id: result.providerId,
-        name: result.providerName,
-        displayName: result.providerDisplayName,
+        name: providerMap.get(result.providerId)?.name || result.providerId,
+        displayName: providerMap.get(result.providerId)?.displayName || result.providerId,
       },
       model: result.model,
-      type: result.type as CallType,
-      totalUsage: parseInt(result.totalUsage || '0', 10),
-      totalCredits: parseFloat(result.totalCredits || '0'),
       totalCalls: parseInt(result.totalCalls || '0', 10),
-      successRate:
-        parseInt(result.totalCalls || '0', 10) > 0
-          ? Math.round((parseInt(result.successCalls || '0', 10) / parseInt(result.totalCalls || '0', 10)) * 10000) /
-            100
-          : 0,
     }));
+
+    const totalModelCount = parseInt(((totalCountResults as any[])[0] as any)?.totalModels || '0', 10);
+
+    return {
+      list,
+      totalModelCount,
+    };
   }
 
   static async getModelUsageStatsLegacy({

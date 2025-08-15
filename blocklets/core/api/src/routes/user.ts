@@ -10,6 +10,8 @@ import {
   getUserCredits,
   isPaymentRunning,
 } from '@api/libs/payment';
+import { ensureAdmin } from '@api/libs/security';
+import { formatToShortUrl } from '@api/libs/url';
 import ModelCall from '@api/store/models/model-call';
 import ModelCallStat from '@api/store/models/model-call-stat';
 import { proxyToAIKit } from '@blocklet/aigne-hub/api/call';
@@ -21,6 +23,7 @@ import BigNumber from 'bignumber.js';
 import { Router } from 'express';
 import Joi from 'joi';
 import { pick } from 'lodash';
+import { Op } from 'sequelize';
 import { joinURL, withQuery } from 'ufo';
 
 const router = Router();
@@ -33,40 +36,26 @@ interface TrendComparisonResult {
   growth: { usageGrowth: number; creditsGrowth: number; callsGrowth: number };
 }
 
-// Helper function to generate date strings from timestamp range
-function generateDateRangeFromTimestamps(startTime: number, endTime: number): string[] {
-  const dates: string[] = [];
-  const startDate = new Date(startTime * 1000);
-  const endDate = new Date(endTime * 1000);
+// Helper function to generate hour timestamps from user local time range
+// Converts user's local time range to UTC hour timestamps for precise querying
+function generateHourRangeFromTimestamps(startTime: number, endTime: number): number[] {
+  const hours: number[] = [];
+  const hourInSeconds = 3600;
 
-  // Use local date methods to avoid timezone conversion issues
-  const startYear = startDate.getFullYear();
-  const startMonth = startDate.getMonth();
-  const startDay = startDate.getDate();
+  // Round down start time to the beginning of the hour
+  const startHour = Math.floor(startTime / hourInSeconds) * hourInSeconds;
 
-  const endYear = endDate.getFullYear();
-  const endMonth = endDate.getMonth();
-  const endDay = endDate.getDate();
+  // Round up end time to the end of the hour
+  const endHour = Math.ceil(endTime / hourInSeconds) * hourInSeconds;
 
-  // Create date objects for comparison using local date
-  const currentDate = new Date(startYear, startMonth, startDay);
-  const endDateLocal = new Date(endYear, endMonth, endDay);
-
-  while (currentDate <= endDateLocal) {
-    // Format date as YYYY-MM-DD without timezone conversion
-    const year = currentDate.getFullYear();
-    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-    const day = String(currentDate.getDate()).padStart(2, '0');
-    const dateStr = `${year}-${month}-${day}`;
-
-    dates.push(dateStr);
-    currentDate.setDate(currentDate.getDate() + 1);
+  for (let currentHour = startHour; currentHour < endHour; currentHour += hourInSeconds) {
+    hours.push(currentHour);
   }
 
-  return dates;
+  return hours;
 }
 
-// Optimized trend comparison using ModelCallStat
+// Optimized trend comparison using hourly ModelCallStat data
 async function getTrendComparisonOptimized(
   userDid: string,
   startTime: number,
@@ -76,18 +65,18 @@ async function getTrendComparisonOptimized(
   const previousEnd = startTime - 1;
   const previousStart = previousEnd - periodDuration;
 
-  // Generate date ranges using improved method
-  const currentDates = generateDateRangeFromTimestamps(startTime, endTime);
-  const previousDates = generateDateRangeFromTimestamps(previousStart, previousEnd);
+  // Generate hour ranges for both current and previous periods
+  const currentHours = generateHourRangeFromTimestamps(startTime, endTime);
+  const previousHours = generateHourRangeFromTimestamps(previousStart, previousEnd);
 
   try {
-    // Get daily stats using ModelCallStat (cached/precomputed)
-    const [currentDailyStats, previousDailyStats] = await Promise.all([
-      Promise.all(currentDates.map((date: string) => ModelCallStat.getDailyStats(userDid, date))),
-      Promise.all(previousDates.map((date: string) => ModelCallStat.getDailyStats(userDid, date))),
+    // Get hourly stats using ModelCallStat (cached/precomputed)
+    const [currentHourlyStats, previousHourlyStats] = await Promise.all([
+      Promise.all(currentHours.map((hour: number) => ModelCallStat.getHourlyStats(userDid, hour))),
+      Promise.all(previousHours.map((hour: number) => ModelCallStat.getHourlyStats(userDid, hour))),
     ]);
 
-    // Aggregate current period stats
+    // Aggregate current period stats from hourly data
     const currentTotals = {
       totalUsage: 0,
       totalCredits: 0,
@@ -95,25 +84,29 @@ async function getTrendComparisonOptimized(
       byType: {} as { [key: string]: { totalUsage: number; totalCalls: number } },
     };
 
-    currentDailyStats.forEach((dayStats: any) => {
-      currentTotals.totalUsage = new BigNumber(currentTotals.totalUsage).plus(dayStats.totalUsage).toNumber();
-      currentTotals.totalCredits = new BigNumber(currentTotals.totalCredits).plus(dayStats.totalCredits).toNumber();
-      currentTotals.totalCalls = new BigNumber(currentTotals.totalCalls).plus(dayStats.totalCalls).toNumber();
+    currentHourlyStats.forEach((hourStats: any) => {
+      if (hourStats) {
+        currentTotals.totalUsage = new BigNumber(currentTotals.totalUsage).plus(hourStats.totalUsage || 0).toNumber();
+        currentTotals.totalCredits = new BigNumber(currentTotals.totalCredits)
+          .plus(hourStats.totalCredits || 0)
+          .toNumber();
+        currentTotals.totalCalls = new BigNumber(currentTotals.totalCalls).plus(hourStats.totalCalls || 0).toNumber();
 
-      Object.entries(dayStats.byType).forEach(([type, typeStats]: [string, any]) => {
-        if (!currentTotals.byType[type]) {
-          currentTotals.byType[type] = { totalUsage: 0, totalCalls: 0 };
-        }
-        currentTotals.byType[type].totalUsage = new BigNumber(currentTotals.byType[type].totalUsage)
-          .plus(typeStats.totalUsage)
-          .toNumber();
-        currentTotals.byType[type].totalCalls = new BigNumber(currentTotals.byType[type].totalCalls)
-          .plus(typeStats.totalCalls)
-          .toNumber();
-      });
+        Object.entries(hourStats.byType || {}).forEach(([type, typeStats]: [string, any]) => {
+          if (!currentTotals.byType[type]) {
+            currentTotals.byType[type] = { totalUsage: 0, totalCalls: 0 };
+          }
+          currentTotals.byType[type].totalUsage = new BigNumber(currentTotals.byType[type].totalUsage)
+            .plus(typeStats.totalUsage || 0)
+            .toNumber();
+          currentTotals.byType[type].totalCalls = new BigNumber(currentTotals.byType[type].totalCalls)
+            .plus(typeStats.totalCalls || 0)
+            .toNumber();
+        });
+      }
     });
 
-    // Aggregate previous period stats
+    // Aggregate previous period stats from hourly data
     const previousTotals = {
       totalUsage: 0,
       totalCredits: 0,
@@ -121,22 +114,26 @@ async function getTrendComparisonOptimized(
       byType: {} as { [key: string]: { totalUsage: number; totalCalls: number } },
     };
 
-    previousDailyStats.forEach((dayStats: any) => {
-      previousTotals.totalUsage = new BigNumber(previousTotals.totalUsage).plus(dayStats.totalUsage).toNumber();
-      previousTotals.totalCredits = new BigNumber(previousTotals.totalCredits).plus(dayStats.totalCredits).toNumber();
-      previousTotals.totalCalls = new BigNumber(previousTotals.totalCalls).plus(dayStats.totalCalls).toNumber();
+    previousHourlyStats.forEach((hourStats: any) => {
+      if (hourStats) {
+        previousTotals.totalUsage = new BigNumber(previousTotals.totalUsage).plus(hourStats.totalUsage || 0).toNumber();
+        previousTotals.totalCredits = new BigNumber(previousTotals.totalCredits)
+          .plus(hourStats.totalCredits || 0)
+          .toNumber();
+        previousTotals.totalCalls = new BigNumber(previousTotals.totalCalls).plus(hourStats.totalCalls || 0).toNumber();
 
-      Object.entries(dayStats.byType).forEach(([type, typeStats]: [string, any]) => {
-        if (!previousTotals.byType[type]) {
-          previousTotals.byType[type] = { totalUsage: 0, totalCalls: 0 };
-        }
-        previousTotals.byType[type].totalUsage = new BigNumber(previousTotals.byType[type].totalUsage)
-          .plus(typeStats.totalUsage)
-          .toNumber();
-        previousTotals.byType[type].totalCalls = new BigNumber(previousTotals.byType[type].totalCalls)
-          .plus(typeStats.totalCalls)
-          .toNumber();
-      });
+        Object.entries(hourStats.byType || {}).forEach(([type, typeStats]: [string, any]) => {
+          if (!previousTotals.byType[type]) {
+            previousTotals.byType[type] = { totalUsage: 0, totalCalls: 0 };
+          }
+          previousTotals.byType[type].totalUsage = new BigNumber(previousTotals.byType[type].totalUsage)
+            .plus(typeStats.totalUsage || 0)
+            .toNumber();
+          previousTotals.byType[type].totalCalls = new BigNumber(previousTotals.byType[type].totalCalls)
+            .plus(typeStats.totalCalls || 0)
+            .toNumber();
+        });
+      }
     });
 
     // Calculate growth rates
@@ -181,46 +178,53 @@ async function getTrendComparisonOptimized(
   }
 }
 
-// Optimized usage stats using ModelCallStat
-async function getUsageStatsOptimized(userDid: string, startTime?: number, endTime?: number) {
-  if (!startTime || !endTime) {
-    // Fall back to ModelCall for incomplete date ranges
-    return {
-      usageStats: await ModelCall.getUsageStatsByDateRange({ userDid, startTime, endTime }),
-      totalCredits: await ModelCall.getTotalCreditsByDateRange({ userDid, startTime, endTime }),
-      dailyStats: await ModelCall.getDailyUsageStats({ userDid, startTime, endTime }),
-    };
-  }
-
-  // Generate date range using improved method
-  const dates = generateDateRangeFromTimestamps(startTime, endTime);
-
+// New optimized usage stats using hourly ModelCallStat data
+async function getUsageStatsHourlyOptimized(userDid: string, startTime: number, endTime: number) {
   try {
-    // Get daily stats using ModelCallStat (cached/precomputed)
-    const dailyStatsRaw = await Promise.all(dates.map((date: string) => ModelCallStat.getDailyStats(userDid, date)));
+    // Generate hourly range from user's local time timestamps
+    const hours = generateHourRangeFromTimestamps(startTime, endTime);
 
-    // Aggregate usage stats
+    // Get hourly stats using ModelCallStat (cached/precomputed)
+    const hourlyStatsRaw = await Promise.all(hours.map((hour: number) => ModelCallStat.getHourlyStats(userDid, hour)));
+
+    // Aggregate usage stats from hourly data
     const usageStats = {
       byType: {} as { [key: string]: { totalUsage: number; totalCalls: number } },
       totalCalls: 0,
     };
 
     let totalCredits = 0;
+    let totalUsage = 0;
     const dailyStats: Array<{
       date: string;
+      timestamp: number;
       byType: { [key: string]: { totalUsage: number; totalCalls: number } };
       totalCredits: number;
       totalCalls: number;
+      totalUsage: number;
     }> = [];
 
-    dailyStatsRaw.forEach((dayStats: any, index: number) => {
-      const date = dates[index]!;
+    // Group hourly stats by date for dailyStats
+    const dailyStatsMap = new Map<
+      string,
+      {
+        byType: { [key: string]: { totalUsage: number; totalCalls: number } };
+        totalCredits: number;
+        totalCalls: number;
+        totalUsage: number;
+      }
+    >();
 
-      // Aggregate for usageStats
-      usageStats.totalCalls = new BigNumber(usageStats.totalCalls).plus(dayStats.totalCalls).toNumber();
-      totalCredits = new BigNumber(totalCredits).plus(dayStats.totalCredits).toNumber();
+    hourlyStatsRaw.forEach((hourStats: any, index: number) => {
+      const hourTimestamp = hours[index]!;
+      const date = new Date(hourTimestamp * 1000).toISOString().split('T')[0]!;
 
-      Object.entries(dayStats.byType).forEach(([type, typeStats]: [string, any]) => {
+      // Aggregate for overall usageStats
+      usageStats.totalCalls = new BigNumber(usageStats.totalCalls).plus(hourStats.totalCalls).toNumber();
+      totalCredits = new BigNumber(totalCredits).plus(hourStats.totalCredits).toNumber();
+      totalUsage = new BigNumber(totalUsage).plus(hourStats.totalUsage).toNumber();
+
+      Object.entries(hourStats.byType).forEach(([type, typeStats]: [string, any]) => {
         if (!usageStats.byType[type]) {
           usageStats.byType[type] = { totalUsage: 0, totalCalls: 0 };
         }
@@ -232,28 +236,59 @@ async function getUsageStatsOptimized(userDid: string, startTime?: number, endTi
           .toNumber();
       });
 
-      // Build dailyStats
-      dailyStats.push({
-        date,
-        byType: dayStats.byType,
-        totalCredits: dayStats.totalCredits,
-        totalCalls: dayStats.totalCalls,
+      // Group by date for dailyStats
+      if (!dailyStatsMap.has(date)) {
+        dailyStatsMap.set(date, {
+          byType: {},
+          totalCredits: 0,
+          totalCalls: 0,
+          totalUsage: 0,
+        });
+      }
+
+      const dayData = dailyStatsMap.get(date)!;
+      dayData.totalCalls = new BigNumber(dayData.totalCalls).plus(hourStats.totalCalls).toNumber();
+      dayData.totalCredits = new BigNumber(dayData.totalCredits).plus(hourStats.totalCredits).toNumber();
+      dayData.totalUsage = new BigNumber(dayData.totalUsage).plus(hourStats.totalUsage).toNumber();
+
+      Object.entries(hourStats.byType).forEach(([type, typeStats]: [string, any]) => {
+        if (!dayData.byType[type]) {
+          dayData.byType[type] = { totalUsage: 0, totalCalls: 0 };
+        }
+        dayData.byType[type].totalUsage = new BigNumber(dayData.byType[type].totalUsage)
+          .plus(typeStats.totalUsage)
+          .toNumber();
+        dayData.byType[type].totalCalls = new BigNumber(dayData.byType[type].totalCalls)
+          .plus(typeStats.totalCalls)
+          .toNumber();
       });
     });
+
+    // Convert dailyStats map to array with timestamp for frontend filtering
+    dailyStatsMap.forEach((dayData, date) => {
+      const dayTimestamp = Math.floor(new Date(`${date}T00:00:00.000Z`).getTime() / 1000);
+      dailyStats.push({
+        date,
+        timestamp: dayTimestamp,
+        byType: dayData.byType,
+        totalCredits: dayData.totalCredits,
+        totalCalls: dayData.totalCalls,
+        totalUsage: dayData.totalUsage,
+      });
+    });
+
+    // Sort dailyStats by date
+    dailyStats.sort((a, b) => a.date.localeCompare(b.date));
 
     return {
       usageStats,
       totalCredits,
+      totalUsage,
       dailyStats,
     };
   } catch (error) {
-    console.warn('Failed to get optimized usage stats, falling back to ModelCall:', error);
-    // Fall back to ModelCall on error
-    return {
-      usageStats: await ModelCall.getUsageStatsByDateRange({ userDid, startTime, endTime }),
-      totalCredits: await ModelCall.getTotalCreditsByDateRange({ userDid, startTime, endTime }),
-      dailyStats: await ModelCall.getDailyUsageStats({ userDid, startTime, endTime }),
-    };
+    logger.error('Failed to get hourly optimized usage stats, falling back to legacy method:', error);
+    throw error;
   }
 }
 
@@ -318,8 +353,8 @@ export interface UsageStatsQuery {
 }
 
 const usageStatsSchema = Joi.object<UsageStatsQuery>({
-  startTime: Joi.string().pattern(/^\d+$/).empty([null, '']),
-  endTime: Joi.string().pattern(/^\d+$/).empty([null, '']),
+  startTime: Joi.string().pattern(/^\d+$/).required(),
+  endTime: Joi.string().pattern(/^\d+$/).required(),
 });
 
 router.get('/credit/grants', user, async (req, res) => {
@@ -394,7 +429,8 @@ router.get('/credit/balance', user, async (req, res) => {
 router.get('/credit/payment-link', user, async (_, res) => {
   try {
     const creditPaymentLink = await getCreditPaymentLink();
-    res.json(creditPaymentLink);
+    const shortUrl = creditPaymentLink ? await formatToShortUrl(creditPaymentLink) : creditPaymentLink;
+    res.json(shortUrl);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -441,6 +477,17 @@ router.get('/info', user, async (req, res) => {
     const creditBalance = await getUserCredits({ userDid: req.user?.did });
     const paymentLink = await getCreditPaymentLink();
     const decimal = meter.paymentCurrency?.decimal || 0;
+
+    const fullPaymentLink = withQuery(paymentLink || '', {
+      ...getConnectQueryParam({ userDid: req.user?.did }),
+    });
+    const profileUrl = getCreditUsageLink(req.user?.did);
+
+    const [shortPaymentLink, shortProfileLink] = await Promise.all([
+      fullPaymentLink ? formatToShortUrl(fullPaymentLink) : null,
+      profileUrl ? formatToShortUrl(profileUrl) : null,
+    ]);
+
     return res.json({
       user: userInfo,
       creditBalance: {
@@ -449,20 +496,22 @@ router.get('/info', user, async (req, res) => {
         grantCount: creditBalance.grantCount,
         pendingCredit: fromUnitToToken(creditBalance.pendingCredit, decimal),
       },
-      paymentLink: withQuery(paymentLink || '', {
-        ...getConnectQueryParam({ userDid: req.user?.did }),
-      }),
+      paymentLink: shortPaymentLink,
       currency: meter.paymentCurrency,
       enableCredit: true,
-      profileLink: getCreditUsageLink(req.user?.did),
+      profileLink: shortProfileLink,
     });
   }
+
+  const profileUrl = getCreditUsageLink(req.user?.did);
+  const shortProfileLink = profileUrl ? await formatToShortUrl(profileUrl) : null;
+
   return res.json({
     user: userInfo,
     creditBalance: null,
     paymentLink: null,
     enableCredit: false,
-    profileLink: getCreditUsageLink(req.user?.did),
+    profileLink: shortProfileLink,
   });
 });
 
@@ -527,7 +576,7 @@ router.get('/model-calls/export', user, async (req, res) => {
       userDid,
       startTime: startTime ? Number(startTime) : undefined,
       endTime: endTime ? Number(endTime) : undefined,
-      limit: 10000, // 导出时获取更多数据
+      limit: 10000, // Get more data for export
       offset: 0,
       search,
       status,
@@ -535,7 +584,7 @@ router.get('/model-calls/export', user, async (req, res) => {
       providerId,
     });
 
-    // 转换为CSV格式
+    // Convert to CSV format
     const csvData = calls.map((call) => ({
       timestamp: call.createdAt,
       requestId: call.id,
@@ -558,7 +607,7 @@ router.get('/model-calls/export', user, async (req, res) => {
       `attachment; filename="model-calls-${new Date().toISOString().split('T')[0]}.csv"`
     );
 
-    // 生成CSV内容
+    // Generate CSV content
     const csvHeaders =
       'Timestamp,Request ID,Model,Provider,Type,Status,Input Tokens,Output Tokens,Total Usage,Credits,Duration(ms),App DID\n';
     const csvRows = csvData
@@ -588,31 +637,36 @@ router.get('/usage-stats', user, async (req, res) => {
     const startTimeNum = startTime ? Number(startTime) : undefined;
     const endTimeNum = endTime ? Number(endTime) : undefined;
 
-    // Use optimized version when we have complete date range
-    const { usageStats, totalCredits, dailyStats } = await getUsageStatsOptimized(userDid, startTimeNum, endTimeNum);
+    if (!startTimeNum || !endTimeNum) {
+      return res.status(400).json({ error: 'startTime and endTime are required' });
+    }
 
-    // Get model stats separately (still using ModelCall as it needs complex joins)
-    const modelStats = await ModelCall.getModelUsageStats({
+    const { usageStats, totalCredits, dailyStats, totalUsage } = await getUsageStatsHourlyOptimized(
+      userDid,
+      startTimeNum,
+      endTimeNum
+    );
+
+    // Get model stats (optimized query without JOIN)
+    const modelStatsResult = await ModelCall.getModelUsageStats({
       userDid,
       startTime: startTimeNum,
       endTime: endTimeNum,
       limit: 5,
     });
 
-    // Calculate trend comparison if we have both start and end times
-    let trendComparison = null;
-    if (startTimeNum && endTimeNum) {
-      trendComparison = await getTrendComparisonOptimized(userDid, startTimeNum, endTimeNum);
-    }
+    const trendComparison = await getTrendComparisonOptimized(userDid, startTimeNum, endTimeNum);
 
     return res.json({
       summary: {
         byType: usageStats.byType,
         totalCalls: usageStats.totalCalls,
         totalCredits,
+        modelCount: modelStatsResult.totalModelCount,
+        totalUsage,
       },
       dailyStats,
-      modelStats,
+      modelStats: modelStatsResult.list,
       trendComparison,
     });
   } catch (error) {
@@ -646,6 +700,165 @@ router.get('/monthly-comparison', user, async (req, res) => {
     const comparison = await ModelCall.getMonthlyComparison(userDid);
     return res.json(comparison);
   } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+router.get('/admin/user-stats', ensureAdmin, async (req, res) => {
+  try {
+    const { startTime, endTime } = await usageStatsSchema.validateAsync(pick(req.query, ['startTime', 'endTime']), {
+      stripUnknown: true,
+    });
+
+    const userDid = req.query.userDid as string;
+    if (!userDid) {
+      return res.status(400).json({
+        error: 'userDid is required',
+      });
+    }
+
+    const startTimeNum = Number(startTime);
+    const endTimeNum = Number(endTime);
+
+    const { usageStats, totalCredits, dailyStats } = await getUsageStatsHourlyOptimized(
+      userDid as string,
+      startTimeNum,
+      endTimeNum
+    );
+
+    const modelStatsResult = await ModelCall.getModelUsageStats({
+      userDid: userDid as string,
+      startTime: startTimeNum,
+      endTime: endTimeNum,
+      limit: 5,
+    });
+
+    const trendComparison = await getTrendComparisonOptimized(userDid as string, startTimeNum, endTimeNum);
+    return res.json({
+      userDid,
+      dateRange: {
+        startTime: startTimeNum,
+        endTime: endTimeNum,
+        startDate: new Date(startTimeNum * 1000).toISOString().split('T')[0],
+        endDate: new Date(endTimeNum * 1000).toISOString().split('T')[0],
+      },
+      summary: {
+        byType: usageStats.byType,
+        totalCalls: usageStats.totalCalls,
+        totalCredits,
+        modelCount: modelStatsResult.totalModelCount,
+      },
+      dailyStats,
+      modelStats: modelStatsResult.list,
+      trendComparison,
+      generatedBy: req.user?.did,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    logger.error('Admin query user stats failed:', error);
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// Admin interface: Recalculate user statistics (general rebuild interface)
+router.post('/recalculate-stats', ensureAdmin, async (req, res) => {
+  try {
+    const { userDid, startTime, endTime, dryRun = false } = req.body;
+
+    if (!userDid || !startTime || !endTime) {
+      return res.status(400).json({
+        error: 'userDid, startTime, endTime are required',
+      });
+    }
+
+    const startTimeNum = Number(startTime);
+    const endTimeNum = Number(endTime);
+
+    if (Number.isNaN(startTimeNum) || Number.isNaN(endTimeNum)) {
+      return res.status(400).json({
+        error: 'startTime and endTime must be valid timestamps',
+      });
+    }
+
+    // Generate hour list for recalculation
+    const hours = generateHourRangeFromTimestamps(startTimeNum, endTimeNum);
+
+    // Delete all stat cache in the specified time range (including day and hour types)
+    const deleteConditions = {
+      userDid,
+      timestamp: {
+        [Op.gte]: startTimeNum,
+        [Op.lte]: endTimeNum,
+      },
+    };
+
+    const existingStats = await ModelCallStat.findAll({
+      where: deleteConditions,
+      raw: true,
+    });
+
+    // Preview mode
+    if (dryRun) {
+      return res.json({
+        message: 'Preview mode - will rebuild hourly data',
+        userDid,
+        willDeleteStats: existingStats.length,
+        willRecalculateHours: hours.length,
+      });
+    }
+
+    // Delete old cache and rebuild
+    const deletedCount = await ModelCallStat.destroy({ where: deleteConditions });
+
+    const results = await Promise.all(
+      hours.map(async (hour) => {
+        try {
+          await ModelCallStat.getHourlyStats(userDid, hour);
+          return true;
+        } catch (error) {
+          return false;
+        }
+      })
+    );
+
+    const successCount = results.filter(Boolean).length;
+    const failedCount = results.length - successCount;
+
+    return res.json({
+      message: 'Rebuild completed',
+      deleted: deletedCount,
+      success: successCount,
+      failed: failedCount,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ message: error.message });
+  }
+});
+
+// Cleanup daily data interface
+router.post('/cleanup-daily-stats', ensureAdmin, async (req, res) => {
+  try {
+    const { userDid, startTime, endTime } = req.body;
+    if (!userDid || !startTime || !endTime) {
+      return res.status(400).json({ error: 'userDid, startTime, endTime are required' });
+    }
+
+    const deletedCount = await ModelCallStat.destroy({
+      where: {
+        userDid,
+        timeType: 'day',
+        timestamp: {
+          [Op.gte]: Number(startTime),
+          [Op.lte]: Number(endTime),
+        },
+      },
+    });
+
+    return res.json({
+      message: 'Daily data cleanup completed',
+      deleted: deletedCount,
+    });
+  } catch (error: any) {
     return res.status(500).json({ message: error.message });
   }
 });

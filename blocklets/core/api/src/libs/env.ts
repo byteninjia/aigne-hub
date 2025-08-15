@@ -19,7 +19,7 @@ export const DEFAULT_CREDIT_PRICE_KEY = 'DEFAULT_CREDIT_UNIT_PRICE';
 
 export const DEFAULT_CREDIT_PAYMENT_LINK_KEY = 'DEFAULT_AHC_PACKS_LINK';
 
-export const MODEL_CALL_STATS_CRON_TIME = process.env.MODEL_CALL_STATS_CRON_TIME || '0 1 0 * * *'; // every day at 1:00 AM
+export const MODEL_CALL_STATS_CRON_TIME = process.env.MODEL_CALL_STATS_CRON_TIME || '0 1 * * * *'; // every hour at 1 minute past the hour
 export const CLEANUP_STALE_MODEL_CALLS_CRON_TIME = process.env.CLEANUP_STALE_MODEL_CALLS_CRON_TIME || '*/10 * * * *'; // every 10 minutes
 
 export const MODEL_RATE_TYPE = {
@@ -199,6 +199,11 @@ export const Config = {
   get httpsProxy() {
     const proxy = config.env.HTTPS_PROXY;
     return proxy && typeof proxy === 'string' ? proxy : undefined;
+  },
+
+  get shortUrlApiKey() {
+    const key = config.env.SHORT_URL_API_KEY;
+    return key && typeof key === 'string' ? key : undefined;
   },
 
   _maxRetries: undefined as number | undefined,

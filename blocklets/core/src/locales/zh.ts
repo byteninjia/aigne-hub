@@ -26,6 +26,42 @@ export default flatten({
   success: '成功',
   failed: '失败',
   processing: '正在处理...',
+  viewPricing: '查看模型定价',
+
+  // Pricing page
+  pricing: {
+    title: 'AIGNE Hub 模型定价',
+    subtitle: '透明定价，按需使用，探索我们丰富的AI模型库，找到最适合您项目的模型',
+    searchPlaceholder: '搜索模型名称，提供商等...',
+    filters: {
+      providers: '支持的提供商',
+      allProviders: '全部提供商',
+      types: '模型类型',
+      allModels: '全部模型',
+      textGeneration: '文本生成',
+      imageGeneration: '图像生成',
+      embedding: '向量嵌入',
+      audioTranscription: '语音识别',
+      sortBy: '排序方式',
+      priceDefault: '按价格排序',
+      priceLowToHigh: '价格：从低到高',
+      priceHighToLow: '价格：从高到低',
+    },
+    table: {
+      model: '模型',
+      provider: '提供商',
+      type: '类型',
+      inputPrice: '输入价格',
+      outputPrice: '输出价格',
+      contextWindow: '上下文',
+      status: '状态',
+      actions: '操作',
+    },
+    status: {
+      available: '可用',
+      pending: '暂停中',
+    },
+  },
 
   // AIGNE Hub integrations
   welcome: '欢迎使用 AIGNE Hub',
@@ -229,15 +265,6 @@ export default flatten({
           credit: '1M 表示每百万 AIGNE Hub Credits',
           token: '1M 表示每百万 Token',
         },
-        search: {
-          placeholder: '搜索模型名称、显示名称或描述',
-        },
-        sort: {
-          createdAt: '创建时间',
-        },
-        pagination: {
-          showing: '显示第 {from}-{to} 条，共 {total} 条',
-        },
       },
 
       // Delete dialog
@@ -373,13 +400,17 @@ export default flatten({
     totalCreditsUsed: 'Credits 总用量',
     totalUsage: '总使用量',
     totalTokens: '总Token数',
+    totalImages: '总图片生成数',
     totalRequests: '总请求数',
     dailyCreditsUsage: '每日 Credits 用量趋势',
     dailyUsage: '每日使用量趋势',
     tokenUsage: 'Token使用',
     modelUsage: '使用量',
     modelUsageStats: '模型使用统计',
-    modelUsageStatsDescription: '选定时间段内最常用的模型',
+    modelUsageStatsDescription: '时间段内最常用的模型',
+    modelUsageStatsTotal: '当前周期共有{total}个模型被调用',
+    modelUsageSummaryDescription:
+      '此数值为所有模型用量的综合统计（不同模型的计量单位可能不同）。将鼠标悬停可以查看详细使用量。',
     ofTotalUsage: '占总请求数',
     callHistory: '调用历史',
     callHistoryDescription: '所有模型API调用的详细记录',
@@ -388,7 +419,7 @@ export default flatten({
     timestamp: '时间戳',
     noCallsFound: '未找到符合条件的调用记录',
     dailyTokenUsage: '每日Token使用',
-    noLimit: '无限量',
+    noLimit: '不限量',
     modelUsageStatsEmpty: '当前时间段内没有模型使用记录',
     dailyUsageEmpty: '当前时间段内没有使用记录',
     refresh: '刷新数据',
