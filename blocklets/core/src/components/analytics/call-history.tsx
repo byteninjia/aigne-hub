@@ -51,6 +51,7 @@ export interface CallHistoryQuery {
   endTime?: string;
   search?: string;
   status?: 'all' | 'success' | 'failed';
+  appDid?: string;
 }
 
 interface CallHistoryProps {
@@ -65,6 +66,7 @@ interface CallHistoryProps {
   initialPageSize?: number;
   enableExport?: boolean;
   refreshKey?: number;
+  appDid?: string;
 }
 
 function formatDuration(duration?: number) {
@@ -112,6 +114,7 @@ export function CallHistory({
   initialPageSize = 10,
   enableExport = true,
   refreshKey = 0,
+  appDid = undefined,
 }: CallHistoryProps) {
   const { t } = useLocaleContext();
   const { api } = useSessionContext();
@@ -145,6 +148,7 @@ export function CallHistory({
     const query: CallHistoryQuery = {
       page: pagination.page,
       pageSize: pagination.pageSize,
+      appDid,
     };
 
     if (dateRange) {
