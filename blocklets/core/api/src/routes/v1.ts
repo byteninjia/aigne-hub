@@ -98,7 +98,15 @@ router.post(
     }
 
     // Process image generation and get usage data
-    const usageData = await processImageGeneration(req, res, 'v1');
+    const usageData = await processImageGeneration({
+      req,
+      res,
+      version: 'v1',
+      inputBody: {
+        ...req.body,
+        responseFormat: req.body.response_format || req.body.responseFormat,
+      },
+    });
 
     // Report usage with v1 specific parameters
     if (usageData) {
