@@ -19,6 +19,7 @@ export async function getProviderCredentials(
     model?: string; // Actual model name to record
   }
 ): Promise<{
+  id?: string;
   apiKey?: string;
   baseURL?: string;
   accessKeyId?: string;
@@ -54,9 +55,7 @@ export async function getProviderCredentials(
 
   const errorMessage = await aigneHubConfigProviderUrl();
 
-  const providerRecord = await AiProvider.findOne({
-    where: { name: provider, enabled: true },
-  });
+  const providerRecord = await AiProvider.findOne({ where: { name: provider, enabled: true } });
   if (!providerRecord) {
     return callback(new CustomError(404, `Provider ${provider} not found, ${errorMessage}`));
   }
@@ -89,6 +88,7 @@ export async function getProviderCredentials(
   }
 
   return {
+    id: credential.id,
     apiKey: value.api_key,
     baseURL: providerRecord?.baseUrl,
     accessKeyId: value.access_key_id,
@@ -105,11 +105,11 @@ export async function chatCompletionByFrameworkModel(
     req?: any;
   }
 ): Promise<AsyncGenerator<ChatCompletionResponse>> {
-  const model = await getModel(input, { req: options?.req });
+  const { modelInstance } = await getModel(input, { req: options?.req });
   const engine = new AIGNE();
 
   const response = await engine.invoke(
-    model,
+    modelInstance,
     {
       messages: convertToFrameworkMessages(input.messages),
       responseFormat: input.responseFormat?.type === 'json_schema' ? input.responseFormat : { type: 'text' },
@@ -154,6 +154,7 @@ async function loadModel(
     );
 
   const params: {
+    id?: string;
     apiKey?: string;
     baseURL?: string;
     accessKeyId?: string;
@@ -174,11 +175,14 @@ async function loadModel(
     params.clientOptions = clientOptions;
   }
 
-  return m.create({ ...params, model });
+  return {
+    modelInstance: m.create({ ...params, model }),
+    credentialId: params.id,
+  };
 }
 
 export const getModel = async (
-  input: ChatCompletionInput & Required<Pick<ChatCompletionInput, 'model'>>,
+  input: Required<Pick<ChatCompletionInput, 'model'>>,
   options?: {
     modelOptions?: ChatModelOptions;
     clientOptions?: OpenAIChatModelOptions['clientOptions'];
@@ -186,8 +190,8 @@ export const getModel = async (
   }
 ) => {
   const { modelName: model, providerName: provider } = await getModelAndProviderId(input.model);
-  const m = await loadModel(model, { provider, ...options });
-  return m;
+  const result = await loadModel(model, { provider, ...options });
+  return result;
 };
 
 const loadImageModel = async (
@@ -223,6 +227,7 @@ const loadImageModel = async (
   }
 
   const params: {
+    id?: string;
     apiKey?: string;
     baseURL?: string;
     accessKeyId?: string;
@@ -243,7 +248,10 @@ const loadImageModel = async (
     params.clientOptions = clientOptions;
   }
 
-  return m.create({ ...params, model });
+  return {
+    modelInstance: m.create({ ...params, model }),
+    credentialId: params.id,
+  };
 };
 
 export const getImageModel = async (
@@ -255,6 +263,6 @@ export const getImageModel = async (
   }
 ) => {
   const { modelName: model, providerName: provider } = await getModelAndProviderId(input.model);
-  const m = await loadImageModel(model, { provider, ...options });
-  return m;
+  const result = await loadImageModel(model, { provider, ...options });
+  return result;
 };

@@ -10,7 +10,8 @@ import {
 import { Config } from '@api/libs/env';
 import logger from '@api/libs/logger';
 import { checkUserCreditBalance, isPaymentRunning } from '@api/libs/payment';
-import { createUsageAndCompleteModelCall, handleModelCallError } from '@api/libs/usage';
+import { withModelStatus } from '@api/libs/status';
+import { createUsageAndCompleteModelCall } from '@api/libs/usage';
 import { createModelCallMiddleware } from '@api/middlewares/model-call-tracker';
 import { checkModelRateAvailable } from '@api/providers';
 import AiCredential from '@api/store/models/ai-credential';
@@ -19,7 +20,7 @@ import AiProvider from '@api/store/models/ai-provider';
 import { CustomError } from '@blocklet/error';
 import sessionMiddleware from '@blocklet/sdk/lib/middlewares/session';
 import compression from 'compression';
-import { Router } from 'express';
+import { NextFunction, Request, Response, Router } from 'express';
 import proxy from 'express-http-proxy';
 
 import { getModel } from '../providers/models';
@@ -76,19 +77,31 @@ router.get('/status', user, async (req, res) => {
   return res.json({ available: true });
 });
 
-router.post('/:type(chat)?/completions', compression(), user, chatCallTracker, async (req, res) => {
+const checkCreditBasedBillingMiddleware = (req: Request, _res: Response, next: NextFunction) => {
   const userDid = req.user?.did;
   if (!userDid) {
     throw new CustomError(401, 'User not authenticated');
   }
+
   if (Config.creditBasedBillingEnabled && !isPaymentRunning()) {
     throw new CustomError(502, 'Payment kit is not Running');
   }
+  next();
+};
 
-  try {
+router.post(
+  '/:type(chat)?/completions',
+  compression(),
+  user,
+  checkCreditBasedBillingMiddleware,
+  chatCallTracker,
+  withModelStatus(async (req, res) => {
+    const userDid = req.user?.did;
+
     if (userDid && Config.creditBasedBillingEnabled) {
       await checkUserCreditBalance({ userDid });
     }
+
     await processChatCompletion(req, res, 'v2', {
       onEnd: async (data) => {
         if (data?.output) {
@@ -128,31 +141,24 @@ router.post('/:type(chat)?/completions', compression(), user, chatCallTracker, a
         return data;
       },
     });
-  } catch (error) {
-    handleModelCallError(req, error);
-    throw error;
-  }
-});
+  })
+);
 
 router.post(
   '/chat',
   user,
+  checkCreditBasedBillingMiddleware,
   chatCallTracker,
-  createRetryHandler(async (req, res) => {
-    const userDid = req.user?.did;
-    if (!userDid) {
-      throw new CustomError(401, 'User not authenticated');
-    }
-    if (Config.creditBasedBillingEnabled && !isPaymentRunning()) {
-      throw new CustomError(502, 'Payment kit is not Running');
-    }
+  createRetryHandler(
+    withModelStatus(async (req, res) => {
+      const userDid = req.user?.did;
 
-    try {
       if (userDid && Config.creditBasedBillingEnabled) {
         await checkUserCreditBalance({ userDid });
       }
+
       await checkModelRateAvailable(req.body.model);
-      const model = await getModel(req.body, {
+      const { modelInstance: model } = await getModel(req.body, {
         modelOptions: req.body?.options?.modelOptions,
         req, // Pass request for ModelCall context updating
       });
@@ -197,24 +203,19 @@ router.post(
           },
         },
       });
-    } catch (error) {
-      handleModelCallError(req, error);
-      throw error;
-    }
-  })
+    })
+  )
 );
 
 router.post(
   '/image',
   user,
+  checkCreditBasedBillingMiddleware,
   imageCallTracker,
-  createRetryHandler(async (req, res) => {
-    const userDid = req.user?.did;
-    if (Config.creditBasedBillingEnabled && !isPaymentRunning()) {
-      throw new CustomError(502, 'Payment kit is not Running');
-    }
+  createRetryHandler(
+    withModelStatus(async (req, res) => {
+      const userDid = req.user?.did;
 
-    try {
       if (userDid && Config.creditBasedBillingEnabled) {
         await checkUserCreditBalance({ userDid });
       }
@@ -262,28 +263,24 @@ router.post(
           aigneHubCredits: Number(aigneHubCredits),
         },
       });
-    } catch (error) {
-      handleModelCallError(req, error);
-      throw error;
-    }
-  })
+    })
+  )
 );
 
 // v2 Embeddings endpoint
 router.post(
   '/embeddings',
   user,
+  checkCreditBasedBillingMiddleware,
   embeddingCallTracker,
-  createRetryHandler(async (req, res) => {
-    const userDid = req.user?.did;
-    if (Config.creditBasedBillingEnabled && !isPaymentRunning()) {
-      throw new CustomError(502, 'Payment kit is not Running');
-    }
+  createRetryHandler(
+    withModelStatus(async (req, res) => {
+      const userDid = req.user?.did;
 
-    try {
       if (userDid && Config.creditBasedBillingEnabled) {
         await checkUserCreditBalance({ userDid });
       }
+
       const usageData = await processEmbeddings(req, res);
 
       if (usageData && userDid) {
@@ -308,25 +305,20 @@ router.post(
           return undefined;
         });
       }
-    } catch (error) {
-      handleModelCallError(req, error);
-      throw error;
-    }
-  })
+    })
+  )
 );
 
 // v2 Image Generation endpoint
 router.post(
   '/image/generations',
   user,
+  checkCreditBasedBillingMiddleware,
   imageCallTracker,
-  createRetryHandler(async (req, res) => {
-    const userDid = req.user?.did;
-    if (Config.creditBasedBillingEnabled && !isPaymentRunning()) {
-      throw new CustomError(502, 'Payment kit is not Running');
-    }
+  createRetryHandler(
+    withModelStatus(async (req, res) => {
+      const userDid = req.user?.did;
 
-    try {
       if (userDid && Config.creditBasedBillingEnabled) {
         await checkUserCreditBalance({ userDid });
       }
@@ -372,11 +364,8 @@ router.post(
           aigneHubCredits: Number(aigneHubCredits),
         },
       });
-    } catch (error) {
-      handleModelCallError(req, error);
-      throw error;
-    }
-  })
+    })
+  )
 );
 
 // TODO: Need to add credit based billing
@@ -415,4 +404,5 @@ router.post(
     },
   })
 );
+
 export default router;

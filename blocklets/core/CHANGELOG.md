@@ -1,3 +1,7 @@
+## 0.4.2 (2025-9-1)
+
+- feat: added support for testing model availability and displaying its status in the UI
+
 ## 0.4.1 (2025-9-1)
 
 - feat: set credit-usage private
