@@ -1,3 +1,7 @@
+## 0.4.7 (2025-9-3)
+
+- fix: add request body validation for AIGNE Hub API endpoints
+
 ## 0.4.6 (2025-9-3)
 
 - chore: lock version
