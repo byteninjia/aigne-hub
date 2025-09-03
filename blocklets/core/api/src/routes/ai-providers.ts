@@ -4,12 +4,13 @@ import { Config } from '@api/libs/env';
 import logger from '@api/libs/logger';
 import modelRegistry from '@api/libs/model-registry';
 import { ensureAdmin } from '@api/libs/security';
-import { checkModelStatus } from '@api/libs/status';
 import { createListParamSchema, getWhereFromKvQuery } from '@api/libs/validate';
+import { checkModelIsValid } from '@api/providers/models';
 import AiCredential, { CredentialValue } from '@api/store/models/ai-credential';
 import AiModelRate from '@api/store/models/ai-model-rate';
 import AiModelStatus from '@api/store/models/ai-model-status';
 import AiProvider from '@api/store/models/ai-provider';
+import { formatError } from '@blocklet/error';
 import sessionMiddleware from '@blocklet/sdk/lib/middlewares/session';
 import BigNumber from 'bignumber.js';
 import { NextFunction, Request, Response, Router } from 'express';
@@ -18,26 +19,11 @@ import pick from 'lodash/pick';
 import pAll from 'p-all';
 import { Op } from 'sequelize';
 
-import { getQueue } from '../libs/queue';
+import { modelStatusQueue, typeFilterMap, typeMap } from '../libs/status';
 
 const testModelsRateLimit = new Map<string, { count: number; startTime: number }>();
 const TEST_MODELS_RATE_LIMIT_TIME = 10 * 60 * 1000; // 10 minutes
 const TEST_MODELS_RATE_LIMIT_COUNT = 5;
-
-const typeFilterMap: Record<string, string> = {
-  chatCompletion: 'chatCompletion',
-  imageGeneration: 'imageGeneration',
-  embedding: 'embedding',
-  chat: 'chatCompletion',
-  image_generation: 'imageGeneration',
-  image: 'imageGeneration',
-};
-
-const typeMap = {
-  chatCompletion: 'chat',
-  imageGeneration: 'image_generation',
-  embedding: 'embedding',
-};
 
 const rateLimitMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   if (req.user?.did) {
@@ -68,29 +54,6 @@ const rateLimitMiddleware = (req: Request, res: Response, next: NextFunction): v
 
   next();
 };
-
-const modelStatusQueue = getQueue({
-  name: 'model-status',
-  options: {
-    concurrency: 2,
-    maxRetries: 0,
-  },
-  onJob: async ({
-    providerId,
-    model,
-    type,
-  }: {
-    providerId: string;
-    model: string;
-    type: 'chat' | 'image_generation' | 'embedding';
-  }) => {
-    logger.info('check model status', providerId, model, type);
-    await checkModelStatus({ providerId, model, type }).catch((error) => {
-      logger.error('check model status error', error);
-      throw error;
-    });
-  },
-});
 
 const router = Router();
 
@@ -247,7 +210,6 @@ router.get('/', user, async (req, res) => {
 
     const credentials = await AiCredential.findAll({
       where: {
-        active: true,
         providerId: {
           [Op.in]: providers.map((provider) => provider.id),
         },
@@ -271,9 +233,7 @@ router.get('/', user, async (req, res) => {
     return res.json(providersWithMaskedCredentials);
   } catch (error) {
     logger.error('Failed to get providers:', error);
-    return res.status(500).json({
-      error: 'Failed to get providers',
-    });
+    return res.status(500).json({ error: formatError(error) || 'Failed to get providers' });
   }
 });
 
@@ -303,9 +263,7 @@ router.post('/', ensureAdmin, async (req, res) => {
     return res.json(provider.toJSON());
   } catch (error) {
     logger.error('Failed to create provider:', error);
-    return res.status(500).json({
-      error: 'Failed to create provider',
-    });
+    return res.status(500).json({ error: formatError(error) || 'Failed to create provider' });
   }
 });
 
@@ -332,9 +290,7 @@ router.put('/:id', ensureAdmin, async (req, res) => {
     return res.json(provider.toJSON());
   } catch (error) {
     logger.error('Failed to update provider:', error);
-    return res.status(500).json({
-      error: 'Failed to update provider',
-    });
+    return res.status(500).json({ error: formatError(error) || 'Failed to update provider' });
   }
 });
 
@@ -355,9 +311,7 @@ router.delete('/:id', ensureAdmin, async (req, res) => {
     });
   } catch (error) {
     logger.error('Failed to delete provider:', error);
-    return res.status(500).json({
-      error: 'Failed to delete provider',
-    });
+    return res.status(500).json({ error: formatError(error) || 'Failed to delete provider' });
   }
 });
 
@@ -368,18 +322,19 @@ router.post('/:providerId/credentials', ensureAdmin, async (req, res) => {
       stripUnknown: true,
     });
     if (error) {
-      return res.status(400).json({
-        error: error.details[0]?.message || 'Validation error',
-      });
+      return res.status(400).json({ error: error.details[0]?.message || 'Validation error' });
     }
 
-    // 验证provider是否存在
     const provider = await AiProvider.findByPk(req.params.providerId);
     if (!provider) {
-      return res.status(404).json({
-        error: 'Provider not found',
-      });
+      return res.status(404).json({ error: 'Provider not found' });
     }
+
+    await checkModelIsValid(provider.name, {
+      apiKey: rawValue.credentialType === 'api_key' ? rawValue.value : undefined,
+      accessKeyId: rawValue.credentialType === 'access_key_pair' ? rawValue.value.access_key_id : undefined,
+      secretAccessKey: rawValue.credentialType === 'access_key_pair' ? rawValue.value.secret_access_key : undefined,
+    });
 
     // 处理凭证值
     let credentialValue: CredentialValue;
@@ -416,9 +371,7 @@ router.post('/:providerId/credentials', ensureAdmin, async (req, res) => {
     return res.json(credentialJson);
   } catch (error) {
     logger.error('Failed to create credential:', error);
-    return res.status(500).json({
-      error: 'Failed to create credential',
-    });
+    return res.status(500).json({ error: formatError(error) || 'Failed to create credential' });
   }
 });
 
@@ -427,9 +380,7 @@ router.put('/:providerId/credentials/:credentialId', ensureAdmin, async (req, re
   try {
     const { error, value } = createCredentialSchema.validate(req.body);
     if (error) {
-      return res.status(400).json({
-        error: error.details[0]?.message || 'Validation error',
-      });
+      return res.status(400).json({ error: error.details[0]?.message || 'Validation error' });
     }
 
     const credential = await AiCredential.findOne({
@@ -440,10 +391,19 @@ router.put('/:providerId/credentials/:credentialId', ensureAdmin, async (req, re
     });
 
     if (!credential) {
-      return res.status(404).json({
-        error: 'Credential not found',
-      });
+      return res.status(404).json({ error: 'Credential not found' });
     }
+
+    const provider = await AiProvider.findByPk(req.params.providerId);
+    if (!provider) {
+      return res.status(404).json({ error: 'Provider not found' });
+    }
+
+    await checkModelIsValid(provider.name, {
+      apiKey: value.credentialType === 'api_key' ? value.value : undefined,
+      accessKeyId: value.credentialType === 'access_key_pair' ? value.value.access_key_id : undefined,
+      secretAccessKey: value.credentialType === 'access_key_pair' ? value.value.secret_access_key : undefined,
+    });
 
     // 处理凭证值
     let credentialValue: CredentialValue;
@@ -477,9 +437,7 @@ router.put('/:providerId/credentials/:credentialId', ensureAdmin, async (req, re
     return res.json(credentialJson);
   } catch (error) {
     logger.error('Failed to update credential:', error);
-    return res.status(500).json({
-      error: 'Failed to update credential',
-    });
+    return res.status(500).json({ error: formatError(error) || 'Failed to update credential' });
   }
 });
 
@@ -506,9 +464,7 @@ router.delete('/:providerId/credentials/:credentialId', ensureAdmin, async (req,
     });
   } catch (error) {
     logger.error('Failed to delete credential:', error);
-    return res.status(500).json({
-      error: 'Failed to delete credential',
-    });
+    return res.status(500).json({ error: formatError(error) || 'Failed to delete credential' });
   }
 });
 
@@ -533,9 +489,7 @@ router.get('/:providerId/model-rates', user, async (req, res) => {
     return res.json(modelRates);
   } catch (error) {
     logger.error('Failed to get model rates:', error);
-    return res.status(500).json({
-      error: 'Failed to get model rates',
-    });
+    return res.status(500).json({ error: formatError(error) || 'Failed to get model rates' });
   }
 });
 
@@ -595,9 +549,7 @@ router.post('/:providerId/model-rates', ensureAdmin, async (req, res) => {
     return res.json(modelRate.toJSON());
   } catch (error) {
     logger.error('Failed to create model rate:', error);
-    return res.status(500).json({
-      error: 'Failed to create model rate',
-    });
+    return res.status(500).json({ error: formatError(error) || 'Failed to create model rate' });
   }
 });
 
@@ -631,9 +583,7 @@ router.put('/:providerId/model-rates/:rateId', ensureAdmin, async (req, res) => 
     return res.json(modelRate.toJSON());
   } catch (error) {
     logger.error('Failed to update model rate:', error);
-    return res.status(500).json({
-      error: 'Failed to update model rate',
-    });
+    return res.status(500).json({ error: formatError(error) || 'Failed to update model rate' });
   }
 });
 
@@ -660,9 +610,7 @@ router.delete('/:providerId/model-rates/:rateId', ensureAdmin, async (req, res) 
     });
   } catch (error) {
     logger.error('Failed to delete model rate:', error);
-    return res.status(500).json({
-      error: 'Failed to delete model rate',
-    });
+    return res.status(500).json({ error: formatError(error) || 'Failed to delete model rate' });
   }
 });
 
@@ -787,9 +735,7 @@ router.post('/model-rates', ensureAdmin, async (req, res) => {
     });
   } catch (error) {
     logger.error('Failed to batch create model rates:', error);
-    return res.status(500).json({
-      error: 'Failed to batch create model rates',
-    });
+    return res.status(500).json({ error: formatError(error) || 'Failed to batch create model rates' });
   }
 });
 
@@ -972,9 +918,7 @@ router.get('/chat/models', user, async (req, res) => {
     return res.json(models);
   } catch (error) {
     logger.error('Failed to get models:', error);
-    return res.status(500).json({
-      error: 'Failed to get models',
-    });
+    return res.status(500).json({ error: formatError(error) || 'Failed to get models' });
   }
 });
 
@@ -1027,7 +971,7 @@ router.get('/model-rates', user, async (req, res) => {
     });
   } catch (error) {
     logger.error('Failed to fetch model rates:', error);
-    return res.status(400).json({ error: error.message });
+    return res.status(400).json({ error: formatError(error) });
   }
 });
 
@@ -1150,9 +1094,7 @@ router.get('/models', async (req, res) => {
     return res.json(list);
   } catch (error) {
     logger.error('Failed to get available models:', error);
-    return res.status(500).json({
-      error: 'Failed to get available models',
-    });
+    return res.status(500).json({ error: formatError(error) });
   }
 });
 
@@ -1200,15 +1142,11 @@ router.get('/test-models', user, ensureAdmin, rateLimitMiddleware, async (req, r
 
     const providers = await AiProvider.getEnabledProviders();
     if (providers.length === 0) {
-      return res.json({
-        error: 'No providers found',
-      });
+      return res.json({ error: 'No providers found' });
     }
 
     if (!Config.creditBasedBillingEnabled) {
-      return res.json({
-        error: 'No credit billing enabled',
-      });
+      return res.json({ error: 'No credit billing enabled' });
     }
 
     const modelRates = await AiModelRate.findAll({
@@ -1230,9 +1168,7 @@ router.get('/test-models', user, ensureAdmin, rateLimitMiddleware, async (req, r
     });
   } catch (error) {
     logger.error('Failed to get available models:', error);
-    return res.status(500).json({
-      error: 'Failed to get available models',
-    });
+    return res.status(500).json({ error: formatError(error) });
   }
 });
 
@@ -1315,9 +1251,7 @@ router.post('/bulk-rate-update', ensureAdmin, async (req, res) => {
     });
   } catch (error) {
     logger.error('Failed to bulk update model rates:', error);
-    return res.status(500).json({
-      error: 'Failed to bulk update model rates',
-    });
+    return res.status(500).json({ error: formatError(error) || 'Failed to bulk update model rates' });
   }
 });
 

@@ -1,5 +1,7 @@
+import { Config } from '@api/libs/env';
 import { handleModelCallError } from '@api/libs/usage';
 import AiCredential from '@api/store/models/ai-credential';
+import AiModelRate from '@api/store/models/ai-model-rate';
 import AiModelStatus, { ModelError, ModelErrorType } from '@api/store/models/ai-model-status';
 import AiProvider from '@api/store/models/ai-provider';
 import { CustomError } from '@blocklet/error';
@@ -9,13 +11,37 @@ import { getImageModel, getModel } from '../providers/models';
 import { getModelAndProviderId } from '../providers/util';
 import wsServer from '../ws';
 import { getOpenAIV2 } from './ai-provider';
+import logger from './logger';
+import { NotificationManager } from './notifications/manager';
+import { CredentialInvalidNotificationTemplate } from './notifications/templates/credential';
+import { getQueue } from './queue';
+
+export const typeFilterMap: Record<string, string> = {
+  chatCompletion: 'chatCompletion',
+  imageGeneration: 'imageGeneration',
+  embedding: 'embedding',
+  chat: 'chatCompletion',
+  image_generation: 'imageGeneration',
+  image: 'imageGeneration',
+};
+
+export const typeMap = {
+  chatCompletion: 'chat',
+  imageGeneration: 'image_generation',
+  embedding: 'embedding',
+};
 
 function classifyError(error: any): ModelError {
   const errorMessage = error.message || error.toString();
-  const errorCode = error.code || error.status || error.statusCode;
+  const errorCode = error.status || error.code || error.statusCode;
 
   if (errorCode) {
     switch (errorCode) {
+      case 400:
+        return {
+          code: ModelErrorType.INVALID_ARGUMENT,
+          message: errorMessage,
+        };
       case 401:
         return {
           code: ModelErrorType.INVALID_API_KEY,
@@ -132,14 +158,19 @@ export async function updateModelStatus({
         model: modelName,
         available,
         responseTime: duration,
-        error: error ? classifyError(error) : undefined,
+        error: error ? classifyError(error) : null,
       });
     }
 
     modelStatusCache.set(model, available);
   }
 
-  wsServer.broadcast('model.status.updated', { provider: providerName, model: modelName, available });
+  wsServer.broadcast('model.status.updated', {
+    provider: providerName,
+    model: modelName,
+    available,
+    error: error ? classifyError(error) : null,
+  });
 }
 
 export function withModelStatus(handler: (req: Request, res: Response) => Promise<void>) {
@@ -175,7 +206,7 @@ export function withModelStatus(handler: (req: Request, res: Response) => Promis
 }
 
 export async function callWithModelStatus(
-  { provider, model }: { provider: string; model: string },
+  { provider, model, credentialId }: { provider: string; model: string; credentialId?: string },
   handler: ({ provider, model }: { provider: string; model: string }) => Promise<void>
 ) {
   const start = Date.now();
@@ -189,10 +220,24 @@ export async function callWithModelStatus(
       duration: Date.now() - start,
     });
   } catch (error) {
-    console.error('Failed to call with model status', error);
-    // if (credentialId && [401, 402].includes(Number(error.code))) {
-    //   await AiCredential.update({ active: false }, { where: { id: credentialId } });
-    // }
+    console.error('Failed to call with model status', error.message);
+
+    if (credentialId && [401, 402, 403].includes(Number(error.status))) {
+      const credential = await AiCredential.findOne({ where: { id: credentialId } });
+      const template = new CredentialInvalidNotificationTemplate({
+        credential: {
+          provider,
+          model,
+          credentialName: credential?.name,
+          credentialValue: credential?.getDisplayText(),
+          errorMessage: error.message,
+        },
+      });
+
+      NotificationManager.sendCustomNotificationByRoles(['owner', 'admin'], await template.getTemplate());
+
+      await AiCredential.update({ active: false, error: error.message }, { where: { id: credentialId } });
+    }
 
     await updateModelStatus({
       model: `${provider}/${model}`,
@@ -208,16 +253,26 @@ export async function callWithModelStatus(
 }
 
 const checkChatModelStatus = async ({ provider, model }: { provider: string; model: string }) => {
-  const { modelInstance } = await getModel({ model: `${provider}/${model}` });
-  await callWithModelStatus({ provider, model }, async () => {
+  const { modelInstance, credentialId } = await getModel({ model: `${provider}/${model}` });
+  await callWithModelStatus({ provider, model, credentialId }, async () => {
     await modelInstance.invoke({ messages: [{ role: 'user', content: 'hi' }] });
   });
 };
 
 const checkImageModelStatus = async ({ provider, model }: { provider: string; model: string }) => {
-  const { modelInstance } = await getImageModel({ model: `${provider}/${model}` });
-  await callWithModelStatus({ provider, model }, async () => {
-    await modelInstance.invoke({ prompt: 'input number 1', n: 1, model });
+  const { modelInstance, credentialId } = await getImageModel({ model: `${provider}/${model}` });
+  await callWithModelStatus({ provider, model, credentialId }, async () => {
+    try {
+      await modelInstance.invoke({ prompt: 'A simple image of a cat', model });
+    } catch (error) {
+      const message = classifyError(error);
+      if (message.code === ModelErrorType.INVALID_ARGUMENT) {
+        await modelInstance.invoke({ prompt: 'A beautiful sunset over a calm ocean', model });
+        return;
+      }
+
+      throw error;
+    }
   });
 };
 
@@ -239,14 +294,7 @@ export const checkModelStatus = async ({
 }) => {
   const provider = await AiProvider.findOne({
     where: { id: providerId },
-    include: [
-      {
-        model: AiCredential,
-        as: 'credentials',
-        where: { active: true },
-        required: false,
-      },
-    ],
+    include: [{ model: AiCredential, as: 'credentials', required: false }],
   });
 
   if (!provider) {
@@ -275,7 +323,50 @@ export const checkModelStatus = async ({
       throw new CustomError(500, 'Invalid model type');
     }
   } catch (error) {
+    logger.error('check model status error', { provider: provider.name, model, type, error });
+
     await updateModelStatus({ model: `${provider.name}/${model}`, success: false, duration: 0, error });
     throw error;
   }
+};
+
+export const modelStatusQueue = getQueue({
+  name: 'model-status',
+  options: {
+    concurrency: 2,
+    maxRetries: 0,
+  },
+  onJob: async ({
+    providerId,
+    model,
+    type,
+  }: {
+    providerId: string;
+    model: string;
+    type: 'chat' | 'image_generation' | 'embedding';
+  }) => {
+    logger.info('check model status', providerId, model, type);
+    await checkModelStatus({ providerId, model, type });
+  },
+});
+
+export const checkAllModelStatus = async () => {
+  const providers = await AiProvider.getEnabledProviders();
+  if (providers.length === 0) {
+    return;
+  }
+
+  if (!Config.creditBasedBillingEnabled) {
+    return;
+  }
+
+  const modelRates = await AiModelRate.findAll({ where: {} });
+
+  modelRates.forEach((rate) => {
+    modelStatusQueue.push({
+      model: rate.model,
+      type: typeMap[rate.type as keyof typeof typeMap] || 'chat',
+      providerId: rate.providerId,
+    });
+  });
 };
