@@ -1,3 +1,4 @@
+import AiProvider from '@api/store/models/ai-provider';
 import { getUrl } from '@blocklet/sdk';
 
 import {
@@ -17,13 +18,14 @@ export interface CredentialInvalidNotificationTemplateContext extends BaseNotifi
     errorMessage: string;
     credentialValue: string;
   };
+  provider: AiProvider | null;
 }
 
 function translate(key: string, locale: string, params?: Record<string, any>): string {
   const translations = {
     en: {
       title: 'AIGNE Hub Credential Invalid',
-      body: 'Your Credential {credentialValue} for {provider} is invalid, Please update or verify this credential to continue using the service.',
+      body: 'Your Credential {credentialName}({credentialValue}) for {provider} is invalid, Please update or verify this credential to continue using the service.',
       credentials: 'Manage Credentials',
       provider: 'Provider',
       credentialName: 'Credential Name',
@@ -32,7 +34,7 @@ function translate(key: string, locale: string, params?: Record<string, any>): s
     },
     zh: {
       title: 'AIGNE Hub 凭证错误',
-      body: '您在 {provider} 使用的 {credentialValue} 无效, 请更新或验证该凭证以继续使用服务。',
+      body: '您在 {provider} 使用的 {credentialName}({credentialValue}) 无效, 请更新或验证该凭证以继续使用服务。',
       credentials: '管理凭证',
       provider: '提供者',
       credentialName: '凭证名称',
@@ -60,16 +62,19 @@ export class CredentialInvalidNotificationTemplate extends BaseNotificationTempl
   async getContext(): Promise<CredentialInvalidNotificationTemplateContext> {
     const { credential } = this.options;
 
+    const provider = await AiProvider.findOne({ where: { name: credential.provider } }).catch(() => null);
+
     return {
       locale: 'en',
       userDid: '',
       credential,
+      provider,
     };
   }
 
   async getTemplate(): Promise<BaseNotificationTemplateType> {
     const context = await this.getContext();
-    const { locale, credential } = context;
+    const { locale, credential, provider } = context;
 
     const titleKey = 'title';
     const bodyKey = 'body';
@@ -87,7 +92,7 @@ export class CredentialInvalidNotificationTemplate extends BaseNotificationTempl
         type: 'text',
         data: {
           type: 'plain',
-          text: credential.provider,
+          text: provider?.displayName || credential.provider,
         },
       },
       {
@@ -141,7 +146,7 @@ export class CredentialInvalidNotificationTemplate extends BaseNotificationTempl
     const template: BaseNotificationTemplateType = {
       title: translate(titleKey, locale, {}),
       body: translate(bodyKey, locale, {
-        provider: credential.provider,
+        provider: provider?.displayName || credential.provider,
         model: credential.model,
         credentialName: credential.credentialName,
         credentialValue: credential.credentialValue,
