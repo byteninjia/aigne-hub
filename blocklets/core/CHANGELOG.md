@@ -1,3 +1,7 @@
+## 0.4.14 (2025-9-8)
+
+- feat: activate cluster mode capability in blocklet
+
 ## 0.4.13 (2025-9-5)
 
 - fix: increase request entity size limit
