@@ -26,10 +26,11 @@ import {
 import { useDebounceEffect, useRequest } from 'ahooks';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { joinURL } from 'ufo';
+import { joinURL, withQuery } from 'ufo';
 
 import { useSessionContext } from '../../contexts/session';
 import dayjs from '../../libs/dayjs';
+import { getObservabilityBlocklet } from '../../libs/env';
 
 export interface ModelCall {
   id: string;
@@ -231,6 +232,8 @@ export function CallHistory({
   const handlePageSizeChange = (pageSize: number) => {
     setPagination({ page: 1, pageSize });
   };
+
+  const observabilityBlocklet = getObservabilityBlocklet();
 
   // 构建基础列
   const baseColumns = [
@@ -440,6 +443,21 @@ export function CallHistory({
                   color={map[call.status]}
                   variant="outlined"
                 />
+
+                {observabilityBlocklet?.mountPoint && call.traceId && (
+                  <IconButton
+                    size="small"
+                    onClick={() =>
+                      window.open(
+                        withQuery(joinURL(window.location.origin, observabilityBlocklet.mountPoint), {
+                          traceId: call.traceId,
+                        }),
+                        '_blank'
+                      )
+                    }>
+                    <OpenInNew sx={{ fontSize: 16 }} />
+                  </IconButton>
+                )}
               </Stack>
             </Box>
           );
