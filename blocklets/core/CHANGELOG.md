@@ -1,3 +1,5 @@
+## 0.4.24 (2025-9-11)
+
 ## 0.4.23 (2025-9-11)
 
 - fix: add logger for catch validation error
