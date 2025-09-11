@@ -149,7 +149,7 @@ async function createModelCallContext({
     m = modelName;
 
     // Create ModelCall record without provider/credential info initially
-    const modelCall = await ModelCall.create({
+    const params = {
       providerId: providerId || '',
       model: modelName || model,
       credentialId: '',
@@ -168,6 +168,11 @@ async function createModelCallContext({
         originalModel: model,
       },
       callTime: startTime,
+    } as const;
+
+    const modelCall = await ModelCall.create(params).catch((error) => {
+      logger.error('Failed to create model call record', { error, params });
+      throw error;
     });
 
     logger.info('Created processing model call record', {
