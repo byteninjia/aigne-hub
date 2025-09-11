@@ -24,6 +24,7 @@ import { NextFunction, Request, Response, Router } from 'express';
 import proxy from 'express-http-proxy';
 import Joi from 'joi';
 
+import onError from '../libs/on-error';
 import { getModel } from '../providers/models';
 
 const DEFAULT_MODEL = 'openai/gpt-5-mini';
@@ -189,6 +190,7 @@ router.post(
         }
         return data;
       },
+      onError,
     });
   })
 );
@@ -261,8 +263,9 @@ router.post(
               resolve(data);
               return data;
             },
-            onError: async ({ error }) => {
-              reject(error);
+            onError: async (data) => {
+              onError(data);
+              reject(data.error);
             },
           },
         });
@@ -308,6 +311,7 @@ router.post(
               traceId = data?.context?.id;
               return data;
             },
+            onError,
           },
         }
       );

@@ -1,7 +1,8 @@
 import { availableModels as availableChatModels, availableImageModels } from '@aigne/aigne-hub';
-import { AIGNE, ChatModelOptions, ChatModelOutput, ImageModelOptions } from '@aigne/core';
+import { AIGNE, ChatModelOptions, ImageModelOptions } from '@aigne/core';
 import type { OpenAIChatModelOptions, OpenAIImageModelOptions } from '@aigne/openai';
 import logger from '@api/libs/logger';
+import { InvokeOptions } from '@api/libs/on-error';
 import { ModelCallContext } from '@api/middlewares/model-call-tracker';
 import AiCredential from '@api/store/models/ai-credential';
 import AiProvider from '@api/store/models/ai-provider';
@@ -102,10 +103,7 @@ export async function getProviderCredentials(
 export async function chatCompletionByFrameworkModel(
   input: ChatCompletionInput & Required<Pick<ChatCompletionInput, 'model'>>,
   userDid?: string,
-  options?: {
-    onEnd?: (data?: { output?: ChatModelOutput }) => Promise<{ output?: ChatModelOutput } | undefined>;
-    req: Request;
-  }
+  options?: InvokeOptions & { req: Request }
 ): Promise<AsyncGenerator<ChatCompletionResponse>> {
   const { modelInstance } = await getModel(input, { req: options?.req });
   const engine = new AIGNE();
@@ -119,7 +117,7 @@ export async function chatCompletionByFrameworkModel(
       tools: input.tools,
       modelOptions: pick(input, ['temperature', 'topP', 'presencePenalty', 'frequencyPenalty', 'maxTokens']),
     },
-    { streaming: true, userContext: { userId: userDid }, hooks: { onEnd: options?.onEnd } }
+    { streaming: true, userContext: { userId: userDid }, hooks: { onEnd: options?.onEnd, onError: options?.onError } }
   );
 
   return adaptStreamToOldFormat(response);
