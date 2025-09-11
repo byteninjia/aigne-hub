@@ -1,4 +1,4 @@
-import { AIGNE, ChatModelOutput } from '@aigne/core';
+import { AIGNE } from '@aigne/core';
 import { camelize } from '@aigne/core/utils/camelize';
 import { checkModelRateAvailable } from '@api/providers';
 import { chatCompletionByFrameworkModel, getImageModel } from '@api/providers/models';
@@ -24,6 +24,7 @@ import { getOpenAIV2 } from './ai-provider';
 import { Config } from './env';
 import { processImageUrl } from './image';
 import logger from './logger';
+import { InvokeOptions } from './on-error';
 
 interface ImageResult {
   base64?: string;
@@ -198,12 +199,7 @@ export async function processChatCompletion(
   req: Request,
   res: Response,
   version: 'v1' | 'v2' = 'v1',
-  options?: {
-    onEnd?: (data?: {
-      output?: ChatModelOutput;
-      context?: { id?: string };
-    }) => Promise<{ output?: ChatModelOutput } | undefined>;
-  }
+  options?: InvokeOptions
 ): Promise<{ promptTokens: number; completionTokens: number; model: string; modelParams: Record<string, any> } | null> {
   const { error, value: body } = completionsRequestSchema.validate(req.body, { stripUnknown: true });
   if (error) {
@@ -224,10 +220,7 @@ export async function processChatCompletion(
 
   const isEventStream = req.accepts().some((i) => i.startsWith('text/event-stream'));
 
-  const result = await chatCompletionByFrameworkModel(input, req.user?.did, {
-    ...options,
-    req,
-  });
+  const result = await chatCompletionByFrameworkModel(input, req.user?.did, { ...options, req });
 
   let content = '';
   const toolCalls: NonNullable<ChatCompletionChunk['delta']['toolCalls']> = [];
@@ -279,7 +272,7 @@ export async function processChatCompletion(
       res.flush();
     }
     res.end();
-    return null;
+    throw error;
   }
 
   if (!input.stream && !isEventStream) {
@@ -355,12 +348,7 @@ export async function processImageGeneration(
   },
   options?: {
     userContext?: Record<string, any>;
-    hooks?: {
-      onEnd?: (data?: {
-        output?: ImagesResponse;
-        context?: { id?: string };
-      }) => Promise<{ output?: ImagesResponse } | undefined>;
-    };
+    hooks?: InvokeOptions;
   }
 ): Promise<{
   model: string;
@@ -425,7 +413,7 @@ export async function processImageGeneration(
         ...params,
         responseFormat: params.responseFormat === 'b64_json' ? 'base64' : params.responseFormat || 'base64',
       },
-      { ...options, hooks: { onEnd: options?.hooks?.onEnd } }
+      options
     );
 
     response = {

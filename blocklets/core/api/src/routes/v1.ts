@@ -15,6 +15,7 @@ import { Router } from 'express';
 import proxy from 'express-http-proxy';
 
 import { Config } from '../libs/env';
+import onError from '../libs/on-error';
 import { ensureAdmin, ensureComponentCall } from '../libs/security';
 
 const router = Router();
@@ -58,6 +59,7 @@ router.post(
 
         return data;
       },
+      onError,
     });
   })
 );

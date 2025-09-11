@@ -1,3 +1,7 @@
+## 0.4.24 (2025-9-11)
+
+- feat: add error handling and observability tracking system
+
 ## 0.4.23 (2025-9-11)
 
 - fix: add logger for catch validation error
