@@ -233,14 +233,16 @@ export function withModelStatus(handler: (req: Request, res: Response) => Promis
       const { model, provider, credentialId } = req;
       await sendCredentialInvalidNotification({ model, provider, credentialId, error });
 
-      await updateModelStatus({
-        model: req.body.model,
-        success: false,
-        duration: Date.now() - start,
-        error,
-      }).catch((error) => {
-        logger.error('Failed to update model status', error);
-      });
+      if (error.status && [401, 403, 404, 429, 500, 501, 503].includes(Number(error.status))) {
+        await updateModelStatus({
+          model: req.body.model,
+          success: false,
+          duration: Date.now() - start,
+          error,
+        }).catch((error) => {
+          logger.error('Failed to update model status', error);
+        });
+      }
 
       handleModelCallError(req, error);
       throw error;
