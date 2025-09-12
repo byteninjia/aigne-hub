@@ -69,8 +69,8 @@ export default flatten({
   welcomeDesc:
     'Get started by configuring AI providers to enable AI services. You can also enable Credits billing to manage user usage quotas.',
 
-  aiConfig: 'AI Config',
-  quickStarts: 'Quick Starts',
+  aiConfig: 'Config',
+  quickStarts: 'Quick Start',
   // AI Provider features
   aiProviderSettings: 'AI Provider Settings',
   aiProviderSettingsDesc: 'Configure and manage your AI service providers and API credentials',

@@ -103,8 +103,8 @@ components:
 navigation:
   - id: settings
     title:
-      en: Config
-      zh: 设置
+      en: Console
+      zh: 控制台
     icon: ion:settings-outline
     link: /config
     section:
