@@ -1,3 +1,7 @@
+## 0.4.25 (2025-9-12)
+
+- fix: update error request traceid
+
 ## 0.4.24 (2025-9-11)
 
 - feat: add error handling and observability tracking system

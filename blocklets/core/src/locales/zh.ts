@@ -68,7 +68,7 @@ export default flatten({
   welcome: '欢迎使用 AIGNE Hub',
   welcomeDesc: '开始使用前，请先配置 AI 提供商来启用 AI 服务。您也可以启用 Credits 计费功能来管理用户使用额度。',
 
-  aiConfig: 'AI 配置',
+  aiConfig: '配置',
   quickStarts: '快速开始',
   // AI Provider features
   aiProviderSettings: 'AI 提供商设置',

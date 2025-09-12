@@ -59,7 +59,9 @@ router.post(
 
         return data;
       },
-      onError,
+      onError: (data) => {
+        onError(data, req);
+      },
     });
   })
 );

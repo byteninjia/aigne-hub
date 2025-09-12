@@ -15,6 +15,7 @@ export interface ModelCallContext {
   complete: (result: ModelCallResult) => Promise<void>;
   fail: (error: string, partialUsage?: Partial<UsageData>) => Promise<void>;
   updateCredentials: (providerId: string, credentialId: string, actualModel?: string) => Promise<void>;
+  update: (updateData: Partial<ModelCall>) => Promise<void>;
 }
 
 export interface UsageData {
@@ -282,6 +283,14 @@ async function createModelCallContext({
           duration,
           errorReason: errorReason.substring(0, 200),
         });
+      },
+      update: async (updateData: Partial<ModelCall>) => {
+        await ModelCall.update(
+          {
+            traceId: updateData?.traceId,
+          },
+          { where: { id: modelCall.id } }
+        );
       },
     };
   } catch (error) {

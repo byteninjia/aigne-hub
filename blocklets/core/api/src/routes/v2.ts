@@ -190,7 +190,9 @@ router.post(
         }
         return data;
       },
-      onError,
+      onError: async (data) => {
+        onError(data, req);
+      },
     });
   })
 );
@@ -264,7 +266,7 @@ router.post(
               return data;
             },
             onError: async (data) => {
-              onError(data);
+              onError(data, req);
               reject(data.error);
             },
           },
@@ -311,7 +313,9 @@ router.post(
               traceId = data?.context?.id;
               return data;
             },
-            onError,
+            onError: async (data) => {
+              onError(data, req);
+            },
           },
         }
       );
