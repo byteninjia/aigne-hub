@@ -23,7 +23,7 @@ const onError = async (result: { context: { id?: string } }, req: Request) => {
     logger.error(`Visit the link to view the error details in observability: ${link}`);
   }
 
-  if (req.modelCallContext && result.context.id) {
+  if (req?.modelCallContext && result?.context?.id) {
     req.modelCallContext?.update({ traceId: result.context.id });
   }
 };
