@@ -1,7 +1,7 @@
 {
   "name": "ai-kit",
   "private": true,
-  "version": "0.4.26",
+  "version": "0.4.27",
   "workspaces": [
     "blocklets/*",
     "packages/*"
@@ -24,6 +24,7 @@
     "test": "pnpm -r run test",
     "test:coverage": "pnpm -r run test:coverage"
   },
+  "license": "Elastic-2.0",
   "simple-git-hooks": {
     "pre-commit": "npx lint-staged"
   },

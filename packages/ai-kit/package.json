@@ -1,13 +1,13 @@
 {
   "name": "@blocklet/aigne-hub",
-  "version": "0.4.26",
+  "version": "0.4.27",
   "description": "The react.js component library for AIGNE Hub",
   "publishConfig": {
     "access": "public"
   },
   "author": "Arcblock <blocklet@arcblock.io> https://github.com/blocklet",
   "homepage": "https://github.com/blocklet/ai-kit#readme",
-  "license": "ISC",
+  "license": "Elastic-2.0",
   "main": "./lib/cjs/index.js",
   "module": "./lib/esm/index.js",
   "types": "./lib/types/index.d.ts",
