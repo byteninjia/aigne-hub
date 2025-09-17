@@ -9,12 +9,13 @@ import type { Request, Response } from 'express';
 
 import { getImageModel, getModel } from '../providers/models';
 import { getModelAndProviderId } from '../providers/util';
+import credentialsQueue from '../queue/credentials';
+import { getQueue } from '../queue/queue';
 import wsServer from '../ws';
 import { getOpenAIV2 } from './ai-provider';
 import logger from './logger';
 import { NotificationManager } from './notifications/manager';
 import { CredentialInvalidNotificationTemplate } from './notifications/templates/credential';
-import { getQueue } from './queue';
 
 export const typeFilterMap: Record<string, string> = {
   chatCompletion: 'chatCompletion',
@@ -149,7 +150,14 @@ const sendCredentialInvalidNotification = async ({
   error: Error & { status: number };
 }) => {
   try {
-    if (credentialId && [401, 402, 403].includes(Number(error.status))) {
+    if (credentialId && [401, 403].includes(Number(error.status))) {
+      logger.info('update credential status and send credential invalid notification', {
+        credentialId,
+        provider,
+        model,
+        error,
+      });
+
       const credential = await AiCredential.findOne({ where: { id: credentialId } });
 
       const template = new CredentialInvalidNotificationTemplate({
@@ -169,6 +177,10 @@ const sendCredentialInvalidNotification = async ({
       );
 
       await AiCredential.update({ active: false, error: error.message }, { where: { id: credentialId } });
+
+      if (credential) {
+        credentialsQueue.push({ job: { credentialId, providerId: credential.providerId }, delay: 5 });
+      }
     }
   } catch (error) {
     logger.error('Failed to send credential invalid notification', error);

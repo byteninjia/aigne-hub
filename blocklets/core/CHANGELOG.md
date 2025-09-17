@@ -1,3 +1,7 @@
+## 0.4.31 (2025-9-17)
+
+- fix: improve credential validation and status checking
+
 ## 0.4.30 (2025-9-17)
 
 - fix: reset credential status when update redential
